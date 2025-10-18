@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import ThemeSwitcher from './ThemeSwitcher';
 import { useTranslation } from 'react-i18next';
 import LanguageSelection from './LanguageSelection';
-import { Home, FolderOpen, Users, Calendar, FileText, BarChart3, Settings, X, Info } from 'lucide-react';
+import { Home, FolderOpen, Users, Calendar, FileText, BarChart3, Settings, X, Info, ChevronRight, Target, CheckSquare } from 'lucide-react';
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -28,11 +28,20 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     const { theme } = useTheme();
     const { t } = useTranslation('sidebar');
+    const [activeLink, setActiveLink] = useState('/');
 
-    // Default icons using Lucide React icons
+    // Set active link based on current path
+    useEffect(() => {
+        setActiveLink(window.location.pathname);
+    }, []);
+
+    // Default icons using Lucide React icons with improved styling
     const defaultIcons = {
         document: <Home className="w-5 h-5" />,
+        dashboard: <Home className="w-5 h-5" />,
         projects: <FolderOpen className="w-5 h-5" />,
+        goals: <Target className="w-5 h-5" />,
+        tasks: <CheckSquare className="w-5 h-5" />,
         team: <Users className="w-5 h-5" />,
         calendar: <Calendar className="w-5 h-5" />,
         documents: <FileText className="w-5 h-5" />,
@@ -47,51 +56,71 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     return (
         <aside
-            className={`fixed inset-y-0 left-0 z-40 w-64 bg-card border-r border-border transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+            className={`fixed inset-y-0 left-0 z-40 w-72 bg-card/95 backdrop-blur-sm border-r border-border shadow-lg transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0 ' : '-translate-x-full'}`}
         >
             <div className="h-full flex flex-col">
-                {/* Sidebar header */}
-                <div className="h-16 flex items-center justify-between px-4 border-b border-border">
-                -                    <h2 className="text-xl font-bold text-primary">{t('document')}</h2>
-                +                    <h2 className="text-xl font-bold text-primary">Achieving</h2>
-                     {onClose && (
-                         <button
-                             onClick={onClose}
-                             className="p-1 rounded-md text-foreground hover:bg-secondary hover:text-secondary-foreground focus:outline-none"
-                         >
-                             <X className="h-6 w-6" />
-                         </button>
-                     )}
-                 </div>
+                {/* Sidebar header with gradient accent */}
+                <div className="relative h-20 flex items-center justify-between px-6 border-b border-border overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-50"></div>
+                    <div className="relative z-10 flex items-center">
+                        <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center mr-3">
+                            <Target className="w-5 h-5 text-primary-foreground" />
+                        </div>
+                        <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
+                            Achieving
+                        </h2>
+                    </div>
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            className="relative z-10 p-2 rounded-full text-foreground hover:bg-secondary hover:text-secondary-foreground focus:outline-none transition-all"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    )}
+                </div>
 
-                {/* Navigation links */}
-                <nav className="flex-1 overflow-y-auto py-4 px-3">
-                    <ul className="space-y-2">
-                        {links.map((link) => (
-                            <li key={link.label}>
-                                <a
-                                    href={link.href}
-                                    className="flex items-center px-4 py-2 text-foreground hover:bg-secondary hover:text-secondary-foreground rounded-md group transition-colors"
-                                >
-                                    <span className="mr-3 text-muted-foreground group-hover:text-secondary-foreground transition-colors">
-                                        {link.icon || getIcon(link.label)}
-                                    </span>
-                                    {t(link.label)}
-                                </a>
-                            </li>
-                        ))}
+                {/* Navigation links with improved visual hierarchy */}
+                <nav className="flex-1 overflow-y-auto py-6 px-4">
+                    <div className="mb-2 px-4">
+                        <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Main Navigation</h3>
+                    </div>
+                    <ul className="space-y-1.5">
+                        {links.map((link) => {
+                            const isActive = activeLink === link.href;
+                            return (
+                                <li key={link.label}>
+                                    <a
+                                        href={link.href}
+                                        onClick={() => setActiveLink(link.href)}
+                                        className={`flex items-center px-4 py-2.5 rounded-lg group transition-all duration-200 ${isActive
+                                            ? 'bg-primary/10 text-primary font-medium'
+                                            : 'text-foreground hover:bg-secondary/50 hover:text-foreground'
+                                            }`}
+                                    >
+                                        <span className={`mr-3 ${isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'} transition-colors`}>
+                                            {link.icon || getIcon(link.label)}
+                                        </span>
+                                        <span className="flex-1">{t(link.label)}</span>
+                                        {isActive && <ChevronRight className="w-4 h-4 text-primary opacity-70" />}
+                                    </a>
+                                </li>
+                            );
+                        })}
                     </ul>
                 </nav>
 
-                {/* Theme switcher at bottom */}
+                {/* Theme switcher with improved styling */}
                 {showThemeSwitcher && (
-                    <div className="p-4 border-t border-border">
-                        <p className="text-xs text-muted-foreground mb-2">{t('theme')}</p>
+                    <div className="p-4 border-t border-border/50 bg-card/50">
+                        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">{t('theme')}</p>
                         <ThemeSwitcher />
                     </div>
                 )}
-                {/* Add translation for sidebar */}
-                <div className="p-4 border-t border-border">
+
+                {/* Language selection with improved styling */}
+                <div className="p-4 border-t border-border/50 bg-card/50">
+                    <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">{t('language') || 'Language'}</p>
                     <LanguageSelection />
                 </div>
             </div>
