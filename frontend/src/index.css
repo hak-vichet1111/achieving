@@ -138,5 +138,30 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
+    overflow-x: hidden;
+  }
+}
+
+/* ====== Utility tints for backgrounds (work with CSS vars) ====== */
+@layer utilities {
+  .bg-tint-primary {
+    background-color: color-mix(in oklch, var(--primary) 12%, transparent);
+    border-color: color-mix(in oklch, var(--primary) 20%, var(--border));
+  }
+  .bg-tint-secondary {
+    background-color: color-mix(in oklch, var(--secondary) 12%, transparent);
+    border-color: color-mix(in oklch, var(--secondary) 20%, var(--border));
+  }
+  .bg-tint-destructive {
+    background-color: color-mix(in oklch, var(--destructive) 10%, transparent);
+    border-color: color-mix(in oklch, var(--destructive) 20%, var(--border));
+  }
+  .bg-tint-accent {
+    background-color: color-mix(in oklch, var(--accent) 12%, transparent);
+    border-color: color-mix(in oklch, var(--accent) 20%, var(--border));
+  }
+  .bg-tint-muted {
+    background-color: color-mix(in oklch, var(--muted) 35%, transparent);
+    border-color: var(--border);
   }
 }

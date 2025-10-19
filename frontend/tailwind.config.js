@@ -24,6 +24,9 @@ export default {
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",
+        // Project theme extras
+        warning: "var(--warning)",
+        success: "var(--success)",
       },
       borderRadius: {
         lg: "var(--radius)",

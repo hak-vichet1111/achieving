@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGoals } from '../contexts/GoalsContext';
 import { Target, Plus, Check, Filter, Award, Layers, X, Trophy } from 'lucide-react';
@@ -73,6 +73,28 @@ const Goals = () => {
   ];
   
   const [enhancedGoals, setEnhancedGoals] = useState<EnhancedGoal[]>(sampleGoals);
+
+  // Hydrate achieved statuses from localStorage so GoalDetails can push achievements
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('achieving_enhanced_goals_achieved');
+      const ids: string[] = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(ids) && ids.length) {
+        setEnhancedGoals(prev => prev.map(g => ids.includes(g.id) ? { ...g, status: 'achieved' } : g));
+      }
+    } catch (e) {
+      console.warn('Failed to hydrate achieved goals', e);
+    }
+  }, []);
+
+  // Close modal on Escape key
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowModal(false);
+    };
+    if (showModal) window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showModal]);
   
   const handleViewGoal = (id: string) => {
     console.log(`Viewing goal details for ID: ${id}`);
@@ -85,6 +107,18 @@ const Goals = () => {
         goal.id === id ? { ...goal, status: 'achieved' } : goal
       )
     );
+    // Persist achievement for cross-page consistency
+    try {
+      const raw = localStorage.getItem('achieving_enhanced_goals_achieved');
+      const ids: string[] = raw ? JSON.parse(raw) : [];
+      if (!ids.includes(id)) {
+        localStorage.setItem('achieving_enhanced_goals_achieved', JSON.stringify([...ids, id]));
+      }
+    } catch (e) {
+      console.warn('Failed to persist achieved goal id', e);
+    }
+    // Surface the achieved tab immediately
+    setActiveTab('achieved');
   };
   
   const handleAddGoal = (newGoal: any) => {
@@ -183,7 +217,7 @@ const Goals = () => {
             className="space-y-6"
           >
             {activeGoals.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                 {activeGoals.map(goal => (
                   <EnhancedGoalCard
                     key={goal.id}
@@ -198,19 +232,8 @@ const Goals = () => {
                 <div className="bg-primary/10 p-4 rounded-full mb-4">
                   <Target size={40} className="text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">No active goals yet</h3>
-                <p className="text-muted-foreground max-w-md mb-6">
-                  Create your first goal to start tracking your progress and achieve your financial dreams.
-                </p>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowModal(true)}
-                  className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg"
-                >
-                  <Plus size={16} />
-                  <span>Create New Goal</span>
-                </motion.button>
+                <h3 className="text-xl font-semibold mb-2">No active goals</h3>
+                <p className="text-muted-foreground max-w-md">Create a new goal and start tracking your progress.</p>
               </div>
             )}
           </motion.div>
@@ -224,7 +247,7 @@ const Goals = () => {
             className="space-y-6"
           >
             {achievedGoals.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                 {achievedGoals.map(goal => (
                   <EnhancedGoalCard
                     key={goal.id}
@@ -236,48 +259,44 @@ const Goals = () => {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="bg-primary/10 p-4 rounded-full mb-4">
-                  <Award size={40} className="text-primary" />
+                <div className="bg-accent/10 p-4 rounded-full mb-4">
+                  <Trophy size={40} className="text-accent" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">No achieved goals yet</h3>
-                <p className="text-muted-foreground max-w-md">
-                  Keep working on your active goals. Your achievements will be displayed here.
-                </p>
+                <p className="text-muted-foreground max-w-md">Keep pushing—you’ll get there! Completed goals will appear here.</p>
               </div>
             )}
           </motion.div>
         )}
       </AnimatePresence>
-      
-      {/* Goal Creation Modal */}
+
+      {/* Goal creation modal */}
       <AnimatePresence>
         {showModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+            onClick={() => setShowModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-card border border-border rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-auto"
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: -20 }}
+              className="bg-card border border-border rounded-2xl p-6 shadow-xl w-full max-w-lg"
+              onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between p-6 border-b border-border">
-                <div className="flex items-center gap-2">
-                  <Target className="text-primary" size={20} />
-                  <h2 className="text-xl font-semibold">Create New Goal</h2>
-                </div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Create New Goal</h3>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="text-muted-foreground hover:text-foreground rounded-full p-1 transition-colors"
+                  className="p-2 rounded-lg hover:bg-muted text-muted-foreground"
                 >
-                  <X size={20} />
+                  <X size={16} />
                 </button>
               </div>
-              
-              <GoalModal onSubmit={handleAddGoal} onCancel={() => setShowModal(false)} />
+              <GoalModal onCancel={() => setShowModal(false)} onSubmit={handleAddGoal} />
             </motion.div>
           </motion.div>
         )}

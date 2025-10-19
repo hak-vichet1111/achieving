@@ -6,7 +6,7 @@ import { Home, Target, ListTodo } from 'lucide-react';
 
 const LayoutSidebar = () => {
     const { theme } = useTheme();
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const links = [
         { label: 'Dashboard', href: '/', icon: <Home className="w-5 h-5" /> },
@@ -15,17 +15,14 @@ const LayoutSidebar = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            {/* Navbar */}
-            {/* <Navbar title="Achieving" /> */}
-
+        <div className="min-h-screen bg-background text-foreground lg:grid lg:grid-cols-[18rem_1fr]">
             {/* Sidebar - visible on larger screens by default */}
-            <div className="md:block hidden">
+            <div className="hidden lg:block">
                 <Sidebar isOpen={true} links={links} />
             </div>
 
             {/* Mobile Sidebar - controlled by toggle */}
-            <div className="md:hidden">
+            <div className="lg:hidden">
                 <Sidebar
                     isOpen={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}
@@ -33,22 +30,22 @@ const LayoutSidebar = () => {
                 />
             </div>
             {/* Main Content */}
-            <main className="md:ml-64 p-6">
-                <div className="max-w-4xl mx-auto">
-                    {/* Mobile sidebar toggle */}
-                    <div className="md:hidden mb-6">
-                        <button
-                            onClick={() => setSidebarOpen(true)}
-                            className="px-4 py-2 bg-primary text-primary-foreground rounded-md flex items-center gap-2"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                            Open Menu
-                        </button>
-                    </div>
+            <main className="min-h-screen p-6 w-full">
+                {/* Mobile sidebar toggle */}
+                <div className="lg:hidden mb-6">
+                    <button
+                        onClick={() => setSidebarOpen(true)}
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-md flex items-center gap-2"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        Open Menu
+                    </button>
+                </div>
 
-                    {/* Contents */}
+                {/* Contents */}
+                <div className="w-full">
                     <Outlet />
                 </div>
             </main>

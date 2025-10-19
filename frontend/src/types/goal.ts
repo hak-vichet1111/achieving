@@ -6,4 +6,6 @@ export interface Goal {
   targetDate?: string // ISO date string
   status: GoalStatus
   createdAt: string // ISO date string
+  targetAmount?: number
+  currentAmount?: number
 }

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useTheme } from '../hooks/useTheme';
 import ThemeSwitcher from './ThemeSwitcher';
 import { useTranslation } from 'react-i18next';
 import LanguageSelection from './LanguageSelection';
 import { Home, FolderOpen, Users, Calendar, FileText, BarChart3, Settings, X, Info, ChevronRight, Target, CheckSquare } from 'lucide-react';
+import { NavLink, useLocation } from 'react-router-dom';
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -28,12 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     const { theme } = useTheme();
     const { t } = useTranslation('sidebar');
-    const [activeLink, setActiveLink] = useState('/');
-
-    // Set active link based on current path
-    useEffect(() => {
-        setActiveLink(window.location.pathname);
-    }, []);
+    const location = useLocation();
 
     // Default icons using Lucide React icons with improved styling
     const defaultIcons = {
@@ -47,64 +43,74 @@ const Sidebar: React.FC<SidebarProps> = ({
         documents: <FileText className="w-5 h-5" />,
         reports: <BarChart3 className="w-5 h-5" />,
         settings: <Settings className="w-5 h-5" />,
-    };
+    } as Record<string, React.ReactNode>;
 
     const getIcon = (label: string) => {
-        // @ts-ignore
-        return defaultIcons[label] || <Info className="w-5 h-5" />;
+        const key = label?.toLowerCase();
+        return defaultIcons[key] || <Info className="w-5 h-5" />;
     };
 
     return (
-        <aside
-            className={`fixed inset-y-0 left-0 z-40 w-72 bg-card/95 backdrop-blur-sm border-r border-border shadow-lg transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0 ' : '-translate-x-full'}`}
-        >
-            <div className="h-full flex flex-col">
-                {/* Sidebar header with gradient accent */}
-                <div className="relative h-20 flex items-center justify-between px-6 border-b border-border overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-50"></div>
-                    <div className="relative z-10 flex items-center">
-                        <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center mr-3">
-                            <Target className="w-5 h-5 text-primary-foreground" />
+        <>
+            {isOpen && onClose && (
+                <div
+                    className="fixed inset-0 z-30 bg-black/30 dark:bg-black/50 backdrop-blur-sm lg:hidden"
+                    onClick={onClose}
+                    aria-hidden="true"
+                />
+            )}
+            <aside
+                className={`fixed inset-y-0 left-0 z-40 w-64 sm:w-72 bg-card/95 backdrop-blur-sm border-r border-border shadow-lg transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0 ' : '-translate-x-full'} lg:static lg:sticky lg:top-0 lg:translate-x-0 lg:transform-none lg:shadow-none`}
+            >
+                <div className="h-full lg:h-screen flex flex-col overflow-y-auto">
+                    {/* Header */}
+                    {/* Sidebar header with gradient accent */}
+                    <div className="relative h-20 flex items-center justify-between px-6 border-b border-border overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-50"></div>
+                        <div className="relative z-10 flex items-center">
+                            <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center mr-3">
+                                <Target className="w-5 h-5 text-primary-foreground" />
+                            </div>
+                            <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
+                                Achieving
+                            </h2>
                         </div>
-                        <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
-                            Achieving
-                        </h2>
+                        {onClose && (
+                            <button
+                                onClick={onClose}
+                                className="relative z-10 p-2 rounded-full text-foreground hover:bg-secondary hover:text-secondary-foreground focus:outline-none transition-all"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        )}
                     </div>
-                    {onClose && (
-                        <button
-                            onClick={onClose}
-                            className="relative z-10 p-2 rounded-full text-foreground hover:bg-secondary hover:text-secondary-foreground focus:outline-none transition-all"
-                        >
-                            <X className="h-5 w-5" />
-                        </button>
-                    )}
-                </div>
 
-                {/* Navigation links with improved visual hierarchy */}
-                <nav className="flex-1 overflow-y-auto py-6 px-4">
-                    <div className="mb-2 px-4">
-                        <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Main Navigation</h3>
-                    </div>
-                    <ul className="space-y-1.5">
-                        {links.map((link) => {
-                            const isActive = activeLink === link.href;
-                            return (
-                                <li key={link.label}>
-                                    <a
-                                        href={link.href}
-                                        onClick={() => setActiveLink(link.href)}
-                                        className={`flex items-center px-4 py-2.5 rounded-lg group transition-all duration-200 ${isActive
-                                            ? 'bg-primary/10 text-primary font-medium'
-                                            : 'text-foreground hover:bg-secondary/50 hover:text-foreground'
-                                            }`}
-                                    >
-                                        <span className={`mr-3 ${isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'} transition-colors`}>
-                                            {link.icon || getIcon(link.label)}
-                                        </span>
-                                        <span className="flex-1">{t(link.label)}</span>
-                                        {isActive && <ChevronRight className="w-4 h-4 text-primary opacity-70" />}
-                                    </a>
-                                </li>
+                    {/* Navigation links with improved visual hierarchy */}
+                    <nav className="flex-1 overflow-y-auto py-6 px-4">
+                        <div className="mb-2 px-4">
+                            <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Main Navigation</h3>
+                        </div>
+                        <ul className="space-y-1.5">
+                            {links.map((link) => {
+                                const isActive = location.pathname === link.href;
+                                return (
+                                    <li key={link.label}>
+                                        <NavLink
+                                            to={link.href}
+                                            onClick={onClose}
+                                            className={({ isActive }) =>
+                                                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
+                                                    isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
+                                                }`
+                                            }
+                                        >
+                                            <span className={`mr-3 ${isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'} transition-colors`}>
+                                                {link.icon || getIcon(link.label)}
+                                            </span>
+                                            <span className="flex-1">{t(link.label.toLowerCase())}</span>
+                                            {isActive && <ChevronRight className="w-4 h-4 text-primary opacity-70" />}
+                                        </NavLink>
+                                    </li>
                             );
                         })}
                     </ul>
@@ -125,7 +131,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
             </div>
         </aside>
-    );
+    </>
+);
 };
 
 export default Sidebar;
