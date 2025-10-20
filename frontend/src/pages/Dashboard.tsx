@@ -47,8 +47,19 @@ const Dashboard = () => {
   };
 
   const handleQuickAdd = (newGoal: any) => {
-    // Map enhanced goal modal data to minimal context payload
-    addGoal({ title: newGoal.title, targetDate: newGoal.endDate || newGoal.targetDate });
+    // Map GoalModal fields to backend payload
+    addGoal({
+      title: newGoal.title,
+      description: newGoal.description,
+      category: newGoal.category,
+      saveFrequency: newGoal.saveFrequency,
+      duration: newGoal.duration,
+      startDate: newGoal.startDate,
+      endDate: newGoal.endDate,
+      targetDate: newGoal.endDate || newGoal.targetDate,
+      targetAmount: newGoal.targetAmount,
+      currentAmount: newGoal.savedAmount ?? 0,
+    });
     setShowModal(false);
   };
 
@@ -230,16 +241,17 @@ const Dashboard = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm overflow-y-auto"
             onClick={() => setShowModal(false)}
           >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: -20 }}
-              className="bg-card border border-border rounded-2xl p-6 shadow-xl w-full max-w-lg"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: -20 }}
+                className="bg-card border border-border rounded-2xl p-6 shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Create New Goal</h3>
                 <button
@@ -252,6 +264,7 @@ const Dashboard = () => {
               </div>
               <GoalModal onCancel={() => setShowModal(false)} onSubmit={handleQuickAdd} />
             </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

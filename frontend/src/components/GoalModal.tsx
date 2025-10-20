@@ -13,7 +13,7 @@ const GoalModal: React.FC<GoalModalProps> = ({ onSubmit, onCancel }) => {
   const [targetAmount, setTargetAmount] = useState('');
   const [category, setCategory] = useState('');
   const [saveFrequency, setSaveFrequency] = useState('monthly');
-  const [duration, setDuration] = useState('6');
+  const [duration, setDuration] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState('');
   const [saveAmount, setSaveAmount] = useState('');
