@@ -18,6 +18,7 @@ import {
 import { useGoals } from '../contexts/GoalsContext';
 import ProgressRing from '../components/ProgressRing';
 import StatusBadge from '../components/StatusBadge';
+import { useTranslation } from 'react-i18next';
 
 // Badge status types
 type BadgeStatus = 'early' | 'onTime' | 'late' | 'missed';
@@ -37,6 +38,7 @@ const GoalDetails = () => {
   const { goalId } = useParams<{ goalId: string }>();
   const navigate = useNavigate();
   const { goals, updateAmount, updateGoal } = useGoals();
+  const { t } = useTranslation('goalDetails');
 
   // All state hooks called unconditionally
   const [goal, setGoal] = useState<any>(undefined);
@@ -150,20 +152,20 @@ const GoalDetails = () => {
     if (goals.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-[80vh]">
-          <p className="text-muted-foreground">Loading goal...</p>
+          <p className="text-muted-foreground">{t('loadingGoal')}</p>
         </div>
       );
     }
     return (
       <div className="flex flex-col items-center justify-center h-[80vh]">
         <AlertCircle size={48} className="text-destructive mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Goal Not Found</h2>
-        <p className="text-muted-foreground mb-4">The goal you're looking for doesn't exist.</p>
+        <h2 className="text-2xl font-bold mb-2">{t('goalNotFound')}</h2>
+        <p className="text-muted-foreground mb-4">{t('goalMissing')}</p>
         <button
           onClick={() => navigate('/goals')}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
         >
-          Back to Goals
+          {t('backToGoals')}
         </button>
       </div>
     );
@@ -269,7 +271,7 @@ const GoalDetails = () => {
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft size={20} />
-          Back to Goals
+          {t('backToGoals')}
         </button>
 
         <div className="flex items-center gap-2">
@@ -280,7 +282,7 @@ const GoalDetails = () => {
               className="flex items-center gap-2 px-3 py-1 text-sm border rounded-md hover:bg-accent"
             >
               <Edit size={16} />
-              Edit
+              {t('edit')}
             </button>
           ) : (
             <div className="flex items-center gap-2">
@@ -289,14 +291,14 @@ const GoalDetails = () => {
                 className="flex items-center gap-2 px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
               >
                 <Save size={16} />
-                Save
+                {t('save')}
               </button>
               <button
                 onClick={handleCancel}
                 className="flex items-center gap-2 px-3 py-1 text-sm border rounded-md hover:bg-accent"
               >
                 <X size={16} />
-                Cancel
+                {t('cancel')}
               </button>
             </div>
           )}
@@ -398,22 +400,22 @@ const GoalDetails = () => {
                   <div className="md:col-span-2">
                     <div className="rounded-md border p-3 bg-muted/30">
                       <p className="text-sm">
-                        Remaining to save: <span className="font-semibold">${remainingToSave.toLocaleString()}</span>
+                        {t('remainingToSave')} <span className="font-semibold">${remainingToSave.toLocaleString()}</span>
                       </p>
                       {proposedFrequency ? (
                         periodsRemaining && requiredPerPeriod !== undefined ? (
                           <p className="text-sm mt-1">
-                            Needed per {periodLabel}: <span className="font-semibold">${requiredPerPeriod.toLocaleString()}</span>
-                            ({periodsRemaining} {periodLabel}{periodsRemaining === 1 ? '' : 's'} remaining)
+                            {t('neededPer', { period: periodLabel })} <span className="font-semibold">${requiredPerPeriod.toLocaleString()}</span>
+                            ({periodsRemaining} {periodLabel}{periodsRemaining === 1 ? '' : 's'} {t('remaining')})
                           </p>
                         ) : (
                           <p className="text-sm text-muted-foreground mt-1">
-                            Check dates/duration; end must be after today to compute.
+                            {t('checkDatesHint')}
                           </p>
                         )
                       ) : (
                         <p className="text-sm text-muted-foreground mt-1">
-                          Select save frequency to see required per-period amount.
+                          {t('selectFrequencyHint')}
                         </p>
                       )}
                     </div>
@@ -500,7 +502,7 @@ const GoalDetails = () => {
       <div className="bg-card rounded-lg p-6 border">
         <div className="flex items-center gap-2 mb-4">
           <Award className="text-yellow-500" size={20} />
-          <h2 className="text-xl font-semibold">Saving Progress</h2>
+          <h2 className="text-xl font-semibold">{t('savingProgress')}</h2>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">

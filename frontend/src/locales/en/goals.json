@@ -1,0 +1,12 @@
+{
+  "title": "Your Goals",
+  "subtitle": "Plan, track, and achieve what matters most",
+  "createNewGoal": "Create New Goal",
+  "activeGoals": "Active Goals",
+  "achievedGoals": "Achieved Goals",
+  "noActiveGoals": "No active goals",
+  "emptyActiveHelp": "Create a new goal and start tracking your progress.",
+  "modalCreateNewGoal": "Create New Goal",
+  "viewDetails": "View Details",
+  "markAchieved": "Mark Achieved"
+}

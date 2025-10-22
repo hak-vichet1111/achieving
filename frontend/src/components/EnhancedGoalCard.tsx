@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Calendar, DollarSign, Clock, ArrowRight, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ProgressRing from './ProgressRing';
+import { useTranslation } from 'react-i18next';
 
 interface Goal {
   id: string;
@@ -33,6 +34,7 @@ const EnhancedGoalCard: React.FC<EnhancedGoalCardProps> = ({
   onUpdate
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation('goals');
   const progress = goal.targetAmount > 0 
     ? Math.min(100, (goal.savedAmount / goal.targetAmount) * 100) 
     : 0;
@@ -137,7 +139,7 @@ const EnhancedGoalCard: React.FC<EnhancedGoalCardProps> = ({
           className="flex-1 py-3 flex items-center justify-center gap-1.5 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
         >
           <ArrowRight size={14} />
-          View Details
+          {t('viewDetails')}
         </button>
         
         <div className="w-px bg-border" />
@@ -147,7 +149,7 @@ const EnhancedGoalCard: React.FC<EnhancedGoalCardProps> = ({
           className="flex-1 py-3 flex items-center justify-center gap-1.5 text-sm font-medium text-accent hover:bg-accent/10 transition-colors"
         >
           <CheckCircle size={14} />
-          Mark Achieved
+          {t('markAchieved')}
         </button>
       </div>
     </motion.div>

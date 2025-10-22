@@ -1,0 +1,13 @@
+{
+  "language": "Language",
+  "theme": "Theme",
+  "backToGoals": "Back to Goals",
+  "edit": "Edit",
+  "save": "Save",
+  "cancel": "Cancel",
+  "loadingGoal": "Loading goal...",
+  "goalNotFound": "Goal Not Found",
+  "goalMissing": "The goal you're looking for doesn't exist.",
+  "comingSoon": "Coming soon",
+  "underConstruction": "This feature is under construction. Stay tuned!"
+}

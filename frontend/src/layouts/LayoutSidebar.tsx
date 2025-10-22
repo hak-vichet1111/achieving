@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import { useTheme } from '../hooks/useTheme';
 import { Outlet } from 'react-router-dom';
-import { Home, Target, ListTodo } from 'lucide-react';
+import { Home, Target, Wallet } from 'lucide-react';
 
 const LayoutSidebar = () => {
     const { theme } = useTheme();
@@ -11,7 +11,7 @@ const LayoutSidebar = () => {
     const links = [
         { label: 'Dashboard', href: '/', icon: <Home className="w-5 h-5" /> },
         { label: 'Goals', href: '/goals', icon: <Target className="w-5 h-5" /> },
-        { label: 'Tasks', href: '/tasks', icon: <ListTodo className="w-5 h-5" /> },
+        { label: 'Spending', href: '/spending', icon: <Wallet className="w-5 h-5" /> },
     ];
 
     return (

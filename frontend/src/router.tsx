@@ -3,7 +3,7 @@ import LayoutSidebar from './layouts/LayoutSidebar'
 import Dashboard from './pages/Dashboard'
 import Goals from './pages/Goals'
 import GoalDetails from './pages/GoalDetails'
-import Tasks from './pages/Tasks'
+import Spending from './pages/Spending'
 
 const router = createBrowserRouter([
     {
@@ -24,8 +24,8 @@ const router = createBrowserRouter([
                 element: <GoalDetails />,
             },
             {
-                path: '/tasks',
-                element: <Tasks />,
+                path: '/spending',
+                element: <Spending />,
             }
         ]
 

@@ -5,12 +5,15 @@ import GoalCard from '../components/GoalCard';
 import ProgressRing from '../components/ProgressRing';
 import GoalModal from '../components/GoalModal';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Award, Clock, Target, ArrowRight, Plus, Calendar } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { TrendingUp, Award, Clock, Target, ArrowRight, Plus, Calendar, Wallet } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSpending } from '../contexts/SpendingContext';
 
 const Dashboard = () => {
   const { theme } = useTheme();
   const { goals, addGoal, updateStatus, removeGoal } = useGoals();
+  const { totalThisMonth, recentMonths } = useSpending();
+  const navigate = useNavigate();
 
   const notStarted = goals.filter(g => g.status === 'not_started').length;
   const inProgress = goals.filter(g => g.status === 'in_progress').length;
@@ -20,6 +23,7 @@ const Dashboard = () => {
 
   const [showModal, setShowModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'not_started' | 'in_progress' | 'completed'>('all');
+  const [chartType, setChartType] = useState<'bars' | 'line'>('bars');
 
   const filteredGoals = statusFilter === 'all' ? goals : goals.filter(g => g.status === statusFilter);
   const upcomingGoals = goals
@@ -46,22 +50,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleQuickAdd = (newGoal: any) => {
-    // Map GoalModal fields to backend payload
-    addGoal({
-      title: newGoal.title,
-      description: newGoal.description,
-      category: newGoal.category,
-      saveFrequency: newGoal.saveFrequency,
-      duration: newGoal.duration,
-      startDate: newGoal.startDate,
-      endDate: newGoal.endDate,
-      targetDate: newGoal.endDate || newGoal.targetDate,
-      targetAmount: newGoal.targetAmount,
-      currentAmount: newGoal.savedAmount ?? 0,
-    });
-    setShowModal(false);
-  };
+  const maxRecent = Math.max(1, ...recentMonths.slice(0, 6).map(m => m.total))
 
   return (
     <motion.div 
@@ -88,7 +77,7 @@ const Dashboard = () => {
         </div>
       </motion.header>
 
-      {/* Status summary with icons and improved styling */}
+      {/* Status summary cards */}
       <motion.section variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <motion.div 
           whileHover={{ y: -5, boxShadow: '0 10px 30px -15px rgba(0,0,0,0.2)' }}
@@ -127,6 +116,103 @@ const Dashboard = () => {
             <p className="text-sm font-medium text-muted-foreground">Completed</p>
             <p className="text-3xl font-bold text-foreground">{completed}</p>
           </div>
+        </motion.div>
+      </motion.section>
+
+      {/* Spending summary + history side-by-side */}
+      <motion.section variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Spent This Month card */}
+        <motion.div 
+          whileHover={{ y: -5, boxShadow: '0 10px 30px -15px rgba(0,0,0,0.2)' }}
+          className="bg-card rounded-xl p-6 border border-border flex items-center justify-between gap-6 transition-all"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
+              <Wallet size={24} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Spent This Month</p>
+              <p className="text-3xl font-bold text-foreground">${totalThisMonth.toLocaleString()}</p>
+              <Link to="/spending" className="text-xs text-primary hover:underline">View spending</Link>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Last Months card with chart options */}
+        <motion.div 
+          whileHover={{ y: -5, boxShadow: '0 10px 30px -15px rgba(0,0,0,0.2)' }}
+          className="lg:col-span-2 bg-card rounded-xl p-6 border border-border transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Last Months</h3>
+            <select
+              value={chartType}
+              onChange={(e) => setChartType(e.target.value as any)}
+              className="text-sm bg-transparent border border-border rounded-md px-2 py-1"
+            >
+              <option value="bars">Bars</option>
+              <option value="line">Line</option>
+            </select>
+          </div>
+
+          {/* Chart display */}
+          {chartType === 'bars' ? (
+            <div className="mt-4 h-32 flex items-end gap-2">
+              {recentMonths.slice(0, 6).reverse().map((m) => {
+                const height = Math.max(6, Math.round((m.total / maxRecent) * 100))
+                return (
+                  <div key={m.key} className="flex-1 flex flex-col items-center h-full">
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: `${height}%` }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 24 }}
+                      className="w-full rounded-md cursor-pointer bg-gradient-to-t from-primary/20 to-primary/60 shadow-sm hover:from-primary/30 hover:to-primary/70"
+                      onClick={() => navigate(`/spending?month=${m.key}`)}
+                      title={`${m.label}: $${m.total.toLocaleString()}`}
+                    />
+                    <span className="mt-2 text-xs text-muted-foreground">{m.label.split(' ')[0]}</span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <svg className="mt-4 w-full h-32" viewBox="0 0 240 64">
+              {(() => {
+                const points = recentMonths.slice(0, 6).reverse().map((m, i) => {
+                  const x = (i / 5) * 240
+                  const y = 64 - (m.total / maxRecent) * 60
+                  return `${x},${y}`
+                }).join(' ')
+                return (
+                  <>
+                    <defs>
+                      <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.5" />
+                        <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <polyline points={points} fill="none" stroke="var(--color-primary)" strokeWidth="2" />
+                    <polygon points={`${points} 240,64 0,64`} fill="url(#lineGrad)" />
+                  </>
+                )
+              })()}
+            </svg>
+          )}
+
+          {/* Clickable month list */}
+          <ul className="mt-4 grid grid-cols-2 gap-2">
+            {recentMonths.slice(0, 6).map(m => (
+              <li key={m.key}>
+                <button
+                  onClick={() => navigate(`/spending?month=${m.key}`)}
+                  className="w-full text-left text-sm px-2 py-2 rounded-md hover:bg-muted flex items-center justify-between"
+                >
+                  <span className="text-muted-foreground">{m.label}</span>
+                  <span className="font-medium">${m.total.toLocaleString()}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
         </motion.div>
       </motion.section>
 
@@ -233,41 +319,6 @@ const Dashboard = () => {
           </div>
         )}
       </motion.section>
-
-      {/* Goal creation modal */}
-      <AnimatePresence>
-        {showModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm overflow-y-auto"
-            onClick={() => setShowModal(false)}
-          >
-            <div className="flex min-h-full items-center justify-center p-4">
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: -20 }}
-                className="bg-card border border-border rounded-2xl p-6 shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Create New Goal</h3>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="p-2 rounded-lg hover:bg-muted text-muted-foreground"
-                >
-                  {/* X icon from lucide-react is already imported in Goals page; use Plus here for consistency */}
-                  <span className="sr-only">Close</span>
-                </button>
-              </div>
-              <GoalModal onCancel={() => setShowModal(false)} onSubmit={handleQuickAdd} />
-            </motion.div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   )
 }

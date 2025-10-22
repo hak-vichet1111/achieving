@@ -1,0 +1,14 @@
+{
+  "title": "Spending",
+  "subtitle": "Track, analyze, and control your spending habits",
+  "spentThisMonth": "Spent this month",
+  "amount": "Amount",
+  "category": "Category",
+  "date": "Date",
+  "note": "Note",
+  "notePlaceholder": "Optional note (e.g., coffee with friends)",
+  "addSpending": "Add Spending",
+  "topCategories": "Top Categories",
+  "noSpendingYet": "No spending recorded yet. Add your first entry!",
+  "recentSpending": "Recent Spending"
+}

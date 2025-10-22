@@ -3,7 +3,7 @@ import { useTheme } from '../hooks/useTheme';
 import ThemeSwitcher from './ThemeSwitcher';
 import { useTranslation } from 'react-i18next';
 import LanguageSelection from './LanguageSelection';
-import { Home, FolderOpen, Users, Calendar, FileText, BarChart3, Settings, X, Info, ChevronRight, Target, CheckSquare } from 'lucide-react';
+import { Home, FolderOpen, Users, Calendar, FileText, BarChart3, Settings, X, Info, ChevronRight, Target, CheckSquare, Wallet } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 
 interface SidebarProps {
@@ -38,6 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         projects: <FolderOpen className="w-5 h-5" />,
         goals: <Target className="w-5 h-5" />,
         tasks: <CheckSquare className="w-5 h-5" />,
+        spending: <Wallet className="w-5 h-5" />,
         team: <Users className="w-5 h-5" />,
         calendar: <Calendar className="w-5 h-5" />,
         documents: <FileText className="w-5 h-5" />,

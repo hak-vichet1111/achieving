@@ -1,0 +1,17 @@
+{
+  "savingProgress": "Saving Progress",
+  "saved": "Saved",
+  "startDate": "Start Date",
+  "targetDate": "Target Date",
+  "duration": "Duration",
+  "months": "months",
+  "saveFrequency": "Save Frequency",
+  "savePer": "Save",
+  "completed": "Completed",
+  "complete": "Complete",
+  "remaining": "remaining",
+  "remainingToSave": "Remaining to save:",
+  "neededPer": "Needed per {{period}}:",
+  "selectFrequencyHint": "Select save frequency to see required per-period amount.",
+  "checkDatesHint": "Check dates/duration; end must be after today to compute."
+}
