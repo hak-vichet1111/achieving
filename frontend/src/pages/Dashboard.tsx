@@ -33,27 +33,29 @@ const Dashboard = () => {
 
   const containerVariants: any = {
     hidden: { opacity: 0 },
-    visible: { 
+    visible: {
       opacity: 1,
-      transition: { 
+      transition: {
         staggerChildren: 0.1
       }
     }
   };
-  
+
   const itemVariants: any = {
     hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
+    visible: {
+      y: 0,
       opacity: 1,
       transition: { type: 'spring', stiffness: 300, damping: 24 }
     }
   };
 
   const maxRecent = Math.max(1, ...recentMonths.slice(0, 6).map(m => m.total))
+  const now = new Date()
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
   return (
-    <motion.div 
+    <motion.div
       className="space-y-8 p-6"
       initial="hidden"
       animate="visible"
@@ -79,7 +81,7 @@ const Dashboard = () => {
 
       {/* Status summary cards */}
       <motion.section variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <motion.div 
+        <motion.div
           whileHover={{ y: -5, boxShadow: '0 10px 30px -15px rgba(0,0,0,0.2)' }}
           className="bg-card rounded-xl p-6 border border-border flex items-center gap-4 transition-all"
         >
@@ -91,8 +93,8 @@ const Dashboard = () => {
             <p className="text-3xl font-bold text-foreground">{notStarted}</p>
           </div>
         </motion.div>
-        
-        <motion.div 
+
+        <motion.div
           whileHover={{ y: -5, boxShadow: '0 10px 30px -15px rgba(0,0,0,0.2)' }}
           className="bg-card rounded-xl p-6 border border-border flex items-center gap-4 transition-all"
         >
@@ -104,8 +106,8 @@ const Dashboard = () => {
             <p className="text-3xl font-bold text-foreground">{inProgress}</p>
           </div>
         </motion.div>
-        
-        <motion.div 
+
+        <motion.div
           whileHover={{ y: -5, boxShadow: '0 10px 30px -15px rgba(0,0,0,0.2)' }}
           className="bg-card rounded-xl p-6 border border-border flex items-center gap-4 transition-all"
         >
@@ -122,7 +124,7 @@ const Dashboard = () => {
       {/* Spending summary + history side-by-side */}
       <motion.section variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Spent This Month card */}
-        <motion.div 
+        <motion.div
           whileHover={{ y: -5, boxShadow: '0 10px 30px -15px rgba(0,0,0,0.2)' }}
           className="bg-card rounded-xl p-6 border border-border flex items-center justify-between gap-6 transition-all"
         >
@@ -133,13 +135,13 @@ const Dashboard = () => {
             <div>
               <p className="text-sm font-medium text-muted-foreground">Spent This Month</p>
               <p className="text-3xl font-bold text-foreground">${totalThisMonth.toLocaleString()}</p>
-              <Link to="/spending" className="text-xs text-primary hover:underline">View spending</Link>
+              <Link to={`/spend/${currentMonthKey}`} className="text-xs text-primary hover:underline">View spending</Link>
             </div>
           </div>
         </motion.div>
 
         {/* Last Months card with chart options */}
-        <motion.div 
+        <motion.div
           whileHover={{ y: -5, boxShadow: '0 10px 30px -15px rgba(0,0,0,0.2)' }}
           className="lg:col-span-2 bg-card rounded-xl p-6 border border-border transition-all"
         >
@@ -167,7 +169,7 @@ const Dashboard = () => {
                       animate={{ height: `${height}%` }}
                       transition={{ type: 'spring', stiffness: 200, damping: 24 }}
                       className="w-full rounded-md cursor-pointer bg-gradient-to-t from-primary/20 to-primary/60 shadow-sm hover:from-primary/30 hover:to-primary/70"
-                      onClick={() => navigate(`/spending?month=${m.key}`)}
+                      onClick={() => navigate(`/spending/${m.key}`)}
                       title={`${m.label}: $${m.total.toLocaleString()}`}
                     />
                     <span className="mt-2 text-xs text-muted-foreground">{m.label.split(' ')[0]}</span>
@@ -204,7 +206,7 @@ const Dashboard = () => {
             {recentMonths.slice(0, 6).map(m => (
               <li key={m.key}>
                 <button
-                  onClick={() => navigate(`/spending?month=${m.key}`)}
+                  onClick={() => navigate(`/spending/${m.key}`)}
                   className="w-full text-left text-sm px-2 py-2 rounded-md hover:bg-muted flex items-center justify-between"
                 >
                   <span className="text-muted-foreground">{m.label}</span>
@@ -226,7 +228,7 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground">Completed {completed} of {total}</p>
           </div>
         </div>
-        
+
         <div className="lg:col-span-2 bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-2 mb-4">
             <Calendar className="text-primary" size={18} />
@@ -303,7 +305,7 @@ const Dashboard = () => {
         ) : (
           <div className="space-y-3">
             {filteredGoals.slice(0, 8).map((goal, index) => (
-              <motion.div 
+              <motion.div
                 key={goal.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

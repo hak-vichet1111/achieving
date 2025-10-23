@@ -3,7 +3,8 @@ import LayoutSidebar from './layouts/LayoutSidebar'
 import Dashboard from './pages/Dashboard'
 import Goals from './pages/Goals'
 import GoalDetails from './pages/GoalDetails'
-import Spending from './pages/Spending'
+import SpendDetails from './pages/SpendDetails'
+import Spend from './pages/Spend'
 
 const router = createBrowserRouter([
     {
@@ -24,8 +25,12 @@ const router = createBrowserRouter([
                 element: <GoalDetails />,
             },
             {
-                path: '/spending',
-                element: <Spending />,
+                path: '/spend',
+                element: <Spend />, // Overview of monthly summaries
+            },
+            {
+                path: '/spend/:monthId',
+                element: <SpendDetails />, // Detailed spending for a specific month
             }
         ]
 

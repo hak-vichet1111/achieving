@@ -3,6 +3,7 @@ import Sidebar from '../components/Sidebar';
 import { useTheme } from '../hooks/useTheme';
 import { Outlet } from 'react-router-dom';
 import { Home, Target, Wallet } from 'lucide-react';
+import QuickAdd from '../components/QuickAdd';
 
 const LayoutSidebar = () => {
     const { theme } = useTheme();
@@ -11,7 +12,7 @@ const LayoutSidebar = () => {
     const links = [
         { label: 'Dashboard', href: '/', icon: <Home className="w-5 h-5" /> },
         { label: 'Goals', href: '/goals', icon: <Target className="w-5 h-5" /> },
-        { label: 'Spending', href: '/spending', icon: <Wallet className="w-5 h-5" /> },
+        { label: 'Spend', href: '/spend', icon: <Wallet className="w-5 h-5" /> },
     ];
 
     return (
@@ -48,6 +49,9 @@ const LayoutSidebar = () => {
                 <div className="w-full">
                     <Outlet />
                 </div>
+
+                {/* Global Quick Add available on all pages */}
+                <QuickAdd />
             </main>
         </div>
     );
