@@ -68,6 +68,8 @@ func migrate(database *gorm.DB) {
 	if err := database.AutoMigrate(&Goal{}); err != nil {
 		log.Fatalf("failed to migrate schema: %v", err)
 	}
+	// Spend-related tables
+	MigrateSpending(database)
 }
 
 func setupRouter() *gin.Engine {
@@ -90,6 +92,9 @@ func setupRouter() *gin.Engine {
 		api.PATCH("/goals/:id/status", updateGoalStatus)
 		api.PUT("/goals/:id", updateGoal)
 		api.DELETE("/goals/:id", deleteGoal)
+
+		// Spend-related endpoints
+		RegisterSpendingRoutes(api, db)
 	}
 
 	// Health
