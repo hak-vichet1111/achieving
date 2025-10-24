@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+// updated: fix collapsible JSX structure
 import { useSpending } from '../contexts/SpendingContext'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -24,6 +25,8 @@ export default function Spending() {
   const { monthId } = useParams()
   const monthParam = monthId || null // YYYY-MM
   const [summaryMode, setSummaryMode] = useState<'daily' | 'weekly'>('daily')
+  // Toggle Spending Configuration panel
+  const [configOpen, setConfigOpen] = useState(true)
 
   // Config forms
   const [earningForm, setEarningForm] = useState({ source: '', amount: '', date: new Date().toISOString().split('T')[0] })
@@ -36,7 +39,7 @@ export default function Spending() {
   // Local Quick Add form removed; using global QuickAdd component
 
   const showToast = (message: string, variant: 'success' | 'warning' | 'deleted' = 'success') => {
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2,6)}`
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
     setToasts(prev => [...prev, { id, message, variant }])
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000)
   }
@@ -196,10 +199,10 @@ export default function Spending() {
       showToast(`Deleted plan for ${pendingDelete.cat}`, 'deleted')
     } else if (pendingDelete.type === 'borrow' && pendingDelete.id != null) {
       removeBorrow(pendingDelete.id)
-      showToast('Deleted borrow', 'deleted')
+      showToast(t('toastDeletedBorrow'), 'deleted')
     } else if (pendingDelete.type === 'category' && pendingDelete.cat) {
       removeCategory(pendingDelete.cat)
-      showToast(`Deleted category ${pendingDelete.cat}`, 'deleted')
+      showToast(t('toastDeletedCategory', { category: pendingDelete.cat }), 'deleted')
     }
     setPendingDelete(null)
   }
@@ -216,182 +219,194 @@ export default function Spending() {
             <Wallet className="w-5 h-5" />
           </span> */}
           <div>
-            <h1 className="text-3xl font-bold text-primary">{monthLabel ? `Spending • ${monthLabel}` : t('title')}</h1>
-            <p className="text-muted-foreground">{monthLabel ? 'Filtered by month' : t('subtitle')}</p>
+            <h1 className="text-3xl font-bold text-primary">{monthLabel ? t('titleWithMonth', { month: monthLabel }) : t('title')}</h1>
+            <p className="text-muted-foreground">{monthLabel ? t('filteredByMonth') : t('subtitle')}</p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-sm text-muted-foreground">{monthLabel ? 'Total this view' : t('spentThisMonth')}</p>
+          <p className="text-sm text-muted-foreground">{monthLabel ? t('totalThisView') : t('spentThisMonth')}</p>
           <p className={`text-2xl font-bold ${totalForView > plannedThisMonth ? 'text-rose-600' : ''}`}>${totalForView.toLocaleString()}</p>
         </div>
       </header>
 
 
-      {/* Spending Configuration */}
-      <div className="bg-card rounded-xl border p-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><ClipboardList className="w-5 h-5" />Spending Configuration</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Earnings */}
-          <div>
-            <h3 className="text-md font-semibold mb-2 flex items-center gap-2"><DollarSign className="w-4 h-4" />Earnings</h3>
-            <div className="space-y-2">
-              <input className="w-full bg-transparent border border-border rounded-md p-2" placeholder="Source (salary, investing...)" value={earningForm.source} onChange={e => setEarningForm(prev => ({ ...prev, source: e.target.value }))} />
-              <input className="w-full bg-transparent border border-border rounded-md p-2" type="number" placeholder="Amount" value={earningForm.amount} onChange={e => setEarningForm(prev => ({ ...prev, amount: e.target.value }))} />
-              <input className="w-full bg-transparent border border-border rounded-md p-2" type="date" value={earningForm.date} onChange={e => setEarningForm(prev => ({ ...prev, date: e.target.value }))} />
-              <button onClick={handleAddEarning} className="w-full bg-primary text-primary-foreground rounded-md py-2">Add Earning</button>
-            </div>
-            <div className="mt-3 text- text-muted-foreground">Total Earnings ({currentMonthKey}): <span className="font-medium text-lg text-primary">${earningsThisMonth.toLocaleString()}</span></div>
-            <ul className="mt-3 space-y-2 max-h-40 overflow-auto">
-              {earnings.filter(e => new Date(e.date).getFullYear() === yearForView && (new Date(e.date).getMonth() + 1) === monthForView).map(e => (
-                <li key={e.id} className="flex items-center justify-between text-sm">
-                  <span>{e.source} • {new Date(e.date).toLocaleDateString()}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">${e.amount.toLocaleString()}</span>
-                    <button onClick={() => setPendingDelete({ type: 'earning', id: e.id })} className="p-1 rounded hover:bg-muted text-muted-foreground" aria-label="Delete earning">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Planning */}
-          <div>
-            <h3 className="text-md font-semibold mb-2">Planning</h3>
-            <div className="space-y-2">
-              <select className="w-full bg-transparent border border-border rounded-md p-2" value={planForm.category} onChange={e => setPlanForm(prev => ({ ...prev, category: e.target.value }))}>
-                {categories.map(c => (<option key={c} value={c}>{c}</option>))}
-              </select>
-              <input className="w-full bg-transparent border border-border rounded-md p-2" type="number" placeholder="Planned amount" value={planForm.amount} onChange={e => setPlanForm(prev => ({ ...prev, amount: e.target.value }))} />
-              <button onClick={handleAddPlan} className="w-full bg-primary text-primary-foreground rounded-md py-2">Add Plan</button>
-            </div>
-            <div className="mt-3 text-sm text-muted-foreground">Total Planned ({currentMonthKey}): <span className="font-medium text-lg text-amber-500">${plannedThisMonth.toLocaleString()}</span></div>
-            <div className="mt-3 space-y-2">
-              {Object.entries(plannedByCategory).map(([cat, amt]) => (
-                <div key={cat} className="flex items-center gap-3">
-                  <span className="w-24 text-sm text-muted-foreground">{cat}</span>
-                  <div className="flex-1 h-2 bg-muted rounded">
-                    <div className={`h-2 rounded ${((byCategoryForView[cat] || 0) > (amt as number)) ? 'bg-rose-600' : 'bg-primary'}`} style={{ width: `${Math.min(100, Math.round(((byCategoryForView[cat] || 0) / (amt as number || 1)) * 100))}%` }} />
-                  </div>
-                  <span className="w-28 text-right text-sm">Planned: ${(amt as number).toLocaleString()}</span>
-                  <button
-                    className="p-1 rounded hover:bg-muted text-muted-foreground"
-                    onClick={() => setPendingDelete({ type: 'plan', cat })}
-                    aria-label={`Delete plan for ${cat}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+      {/* Spending Configuration (collapsible) */}
+      <div className="bg-card rounded-xl border">
+        <button
+          className="w-full flex items-center justify-between rounded-t-xl p-4 hover:bg-muted"
+          onClick={() => setConfigOpen(o => !o)}
+          aria-expanded={configOpen}
+          aria-controls="spending-config-panel"
+        >
+          <span className="inline-flex items-center gap-2 text-lg font-semibold rounded-xl"><ClipboardList className="w-5 h-5" />{t('spendingConfiguration')}</span>
+          <span className="text-sm text-muted-foreground">{configOpen ? t('hide') : t('show')}</span>
+        </button>
+        {configOpen && (
+          <div id="spending-config-panel" className="border-t p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Earnings */}
+              <div>
+                <h3 className="text-md font-semibold mb-2 flex items-center gap-2"><DollarSign className="w-4 h-4" />{t('earningsSummary')}</h3>
+                <div className="space-y-2">
+                  <input className="w-full bg-transparent border border-border rounded-md p-2" placeholder={t('sourcePlaceholder')} value={earningForm.source} onChange={e => setEarningForm(prev => ({ ...prev, source: e.target.value }))} />
+                  <input className="w-full bg-transparent border border-border rounded-md p-2" type="number" placeholder={t('amount')} value={earningForm.amount} onChange={e => setEarningForm(prev => ({ ...prev, amount: e.target.value }))} />
+                  <input className="w-full bg-transparent border border-border rounded-md p-2" type="date" value={earningForm.date} onChange={e => setEarningForm(prev => ({ ...prev, date: e.target.value }))} />
+                  <button onClick={handleAddEarning} className="w-full bg-primary text-primary-foreground rounded-md py-2">{t('addEarning')}</button>
                 </div>
-              ))}
-              {Object.keys(plannedByCategory).length === 0 && (
-                <p className="text-muted-foreground text-sm">No plans yet.</p>
-              )}
-            </div>
-            {/* Manage Categories */}
-            <div className="mt-4">
-              <h4 className="text-sm font-semibold">Manage Categories</h4>
-              <div className="flex gap-2 mt-2">
-                <input
-                  className="flex-1 bg-transparent border border-border rounded-md p-2 text-sm"
-                  placeholder="New category"
-                  value={newCategory}
-                  onChange={e => setNewCategory(e.target.value)}
-                />
-                <button
-                  className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm"
-                  onClick={() => {
-                    const name = newCategory.trim()
-                    if (!name) return
-                    addCategory(name)
-                    setNewCategory('')
-                  }}
-                >
-                  Add
-                </button>
+                <div className="mt-3 text- text-muted-foreground">{t('totalEarningsForMonth', { month: currentMonthKey })} <span className="font-medium text-lg text-primary">${earningsThisMonth.toLocaleString()}</span></div>
+                <ul className="mt-3 space-y-2 max-h-40 overflow-auto">
+                  {earnings.filter(e => new Date(e.date).getFullYear() === yearForView && (new Date(e.date).getMonth() + 1) === monthForView).map(e => (
+                    <li key={e.id} className="flex items-center justify-between text-sm">
+                      <span>{e.source} • {new Date(e.date).toLocaleDateString()}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">${e.amount.toLocaleString()}</span>
+                        <button onClick={() => setPendingDelete({ type: 'earning', id: e.id })} className="p-1 rounded hover:bg-muted text-muted-foreground" aria-label={t('ariaDeleteEarning')}>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {categories.map(c => (
-                  <span key={c} className="inline-flex items-center gap-2 border border-border rounded px-2 py-1 text-xs">
-                    {c}
-                    {c !== 'Other' && (
+
+
+              {/* Planning */}
+              <div>
+                <h3 className="text-md font-semibold mb-2">{t('planningTitle')}</h3>
+                <div className="space-y-2">
+                  <select className="w-full bg-transparent border border-border rounded-md p-2" value={planForm.category} onChange={e => setPlanForm(prev => ({ ...prev, category: e.target.value }))}>
+                    {categories.map(c => (<option key={c} value={c}>{c}</option>))}
+                  </select>
+                  <input className="w-full bg-transparent border border-border rounded-md p-2" type="number" placeholder={t('plannedAmountPlaceholder')} value={planForm.amount} onChange={e => setPlanForm(prev => ({ ...prev, amount: e.target.value }))} />
+                  <button onClick={handleAddPlan} className="w-full bg-primary text-primary-foreground rounded-md py-2">{t('addPlan')}</button>
+                </div>
+                <div className="mt-3 text-sm text-muted-foreground">{t('totalPlannedForMonth', { month: currentMonthKey })} <span className="font-medium text-lg text-amber-500">${plannedThisMonth.toLocaleString()}</span></div>
+                <div className="mt-3 space-y-2">
+                  {Object.entries(plannedByCategory).map(([cat, amt]) => (
+                    <div key={cat} className="flex items-center gap-3">
+                      <span className="w-24 text-sm text-muted-foreground">{cat}</span>
+                      <div className="flex-1 h-2 bg-muted rounded">
+                        <div className={`h-2 rounded ${((byCategoryForView[cat] || 0) > (amt as number)) ? 'bg-rose-600' : 'bg-primary'}`} style={{ width: `${Math.min(100, Math.round(((byCategoryForView[cat] || 0) / (amt as number || 1)) * 100))}%` }} />
+                      </div>
+                      <span className="w-28 text-right text-sm">{t('plannedLabel')} ${(amt as number).toLocaleString()}</span>
                       <button
                         className="p-1 rounded hover:bg-muted text-muted-foreground"
-                        onClick={() => setPendingDelete({ type: 'category', cat: c })}
-                        aria-label={`Delete ${c}`}
+                        onClick={() => setPendingDelete({ type: 'plan', cat })}
+                        aria-label={t('confirmDeletePlan', { category: cat })}
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
-                    )}
-                  </span>
-                ))}
+                    </div>
+                  ))}
+                  {Object.keys(plannedByCategory).length === 0 && (
+                    <p className="text-muted-foreground text-sm">{t('noPlansYet')}</p>
+                  )}
+                </div>
+                {/* Manage Categories */}
+                <div className="mt-4">
+                  <h4 className="text-sm font-semibold">{t('manageCategories')}</h4>
+                  <div className="flex gap-2 mt-2">
+                    <input
+                      className="flex-1 bg-transparent border border-border rounded-md p-2 text-sm"
+                      placeholder={t('newCategoryPlaceholder')}
+                      value={newCategory}
+                      onChange={e => setNewCategory(e.target.value)}
+                    />
+                    <button
+                      className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm"
+                      onClick={() => {
+                        const name = newCategory.trim()
+                        if (!name) return
+                        addCategory(name)
+                        setNewCategory('')
+                      }}
+                    >
+                      {t('add')}
+                    </button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {categories.map(c => (
+                      <span key={c} className="inline-flex items-center gap-2 border border-border rounded px-2 py-1 text-xs">
+                        {c}
+                        {c !== 'Other' && (
+                          <button
+                            className="p-1 rounded hover:bg-muted text-muted-foreground"
+                            onClick={() => setPendingDelete({ type: 'category', cat: c })}
+                            aria-label={t('ariaDeleteCategory', { category: c })}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Borrowing */}
+              <div>
+                <h3 className="text-md font-semibold mb-2 flex items-center gap-2"><HandCoins className="w-4 h-4" />{t('borrowingTitle')}</h3>
+                <div className="space-y-2">
+                  <input className="w-full bg-transparent border border-border rounded-md p-2" placeholder={t('fromPlaceholder')} value={borrowForm.from} onChange={e => setBorrowForm(prev => ({ ...prev, from: e.target.value }))} />
+                  <input className="w-full bg-transparent border border-border rounded-md p-2" type="number" placeholder={t('amount')} value={borrowForm.amount} onChange={e => setBorrowForm(prev => ({ ...prev, amount: e.target.value }))} />
+                  <input className="w-full bg-transparent border border-border rounded-md p-2" type="date" value={borrowForm.date} onChange={e => setBorrowForm(prev => ({ ...prev, date: e.target.value }))} />
+                  <button onClick={handleAddBorrow} className="w-full bg-primary text-primary-foreground rounded-md py-2">{t('addBorrow')}</button>
+                </div>
+                <ul className="mt-3 space-y-2 max-h-40 overflow-auto">
+                  {borrows.filter(b => new Date(b.date).getFullYear() === yearForView && (new Date(b.date).getMonth() + 1) === monthForView).map(b => (
+                    <li key={b.id} className="text-sm flex items-center justify-between">
+                      <span>{b.from} • {new Date(b.date).toLocaleDateString()}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">${b.amount.toLocaleString()}</span>
+                        {b.repaidDate ? (
+                          <span className="text-emerald-500">Repaid ${Number(b.repaidAmount || 0).toLocaleString()} • {new Date(b.repaidDate).toLocaleDateString()}</span>
+                        ) : (
+                          <button
+                            className="px-2 py-1 text-xs rounded border border-border hover:bg-muted"
+                            onClick={() => updateBorrowRepayment(b.id, b.amount, new Date().toISOString().split('T')[0])}
+                          >
+                            {t('markRepaid')}
+                          </button>
+                        )}
+                        <button onClick={() => setPendingDelete({ type: 'borrow', id: b.id })} className="p-1 rounded hover:bg-muted text-muted-foreground" aria-label={t('ariaDeleteBorrow')}>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                  {borrows.length === 0 && <p className="text-muted-foreground text-sm">{t('noBorrowsThisMonth')}</p>}
+                </ul>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  {t('outstandingThisMonth')}: {
+                    (() => {
+                      const list = borrows.filter(b => new Date(b.date).getFullYear() === yearForView && (new Date(b.date).getMonth() + 1) === monthForView)
+                      const outstanding = list.reduce((s, b) => s + (b.amount - (b.repaidAmount || 0)), 0)
+                      return <span className="font-medium text-sm text-warning">${outstanding.toLocaleString()}</span>
+                    })()
+                  }
+                </div>
               </div>
             </div>
           </div>
+        )}
+      </div>
 
-          {/* Borrowing */}
-          <div>
-            <h3 className="text-md font-semibold mb-2 flex items-center gap-2"><HandCoins className="w-4 h-4" />Borrowing</h3>
-            <div className="space-y-2">
-              <input className="w-full bg-transparent border border-border rounded-md p-2" placeholder="From (name)" value={borrowForm.from} onChange={e => setBorrowForm(prev => ({ ...prev, from: e.target.value }))} />
-              <input className="w-full bg-transparent border border-border rounded-md p-2" type="number" placeholder="Amount" value={borrowForm.amount} onChange={e => setBorrowForm(prev => ({ ...prev, amount: e.target.value }))} />
-              <input className="w-full bg-transparent border border-border rounded-md p-2" type="date" value={borrowForm.date} onChange={e => setBorrowForm(prev => ({ ...prev, date: e.target.value }))} />
-              <button onClick={handleAddBorrow} className="w-full bg-primary text-primary-foreground rounded-md py-2">Add Borrow</button>
-            </div>
-            <ul className="mt-3 space-y-2 max-h-40 overflow-auto">
-              {borrows.filter(b => new Date(b.date).getFullYear() === yearForView && (new Date(b.date).getMonth() + 1) === monthForView).map(b => (
-                <li key={b.id} className="text-sm flex items-center justify-between">
-                  <span>{b.from} • {new Date(b.date).toLocaleDateString()}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">${b.amount.toLocaleString()}</span>
-                    {b.repaidDate ? (
-                      <span className="text-emerald-500">Repaid ${Number(b.repaidAmount || 0).toLocaleString()} • {new Date(b.repaidDate).toLocaleDateString()}</span>
-                    ) : (
-                      <button
-                        className="px-2 py-1 text-xs rounded border border-border hover:bg-muted"
-                        onClick={() => updateBorrowRepayment(b.id, b.amount, new Date().toISOString().split('T')[0])}
-                      >
-                        Mark repaid
-                      </button>
-                    )}
-                    <button onClick={() => setPendingDelete({ type: 'borrow', id: b.id })} className="p-1 rounded hover:bg-muted text-muted-foreground" aria-label="Delete borrow">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </li>
-              ))}
-              {borrows.length === 0 && <p className="text-muted-foreground text-sm">No borrows this month.</p>}
-            </ul>
-            <div className="mt-2 text-xs text-muted-foreground">
-              Outstanding this month: {
-                (() => {
-                  const list = borrows.filter(b => new Date(b.date).getFullYear() === yearForView && (new Date(b.date).getMonth() + 1) === monthForView)
-                  const outstanding = list.reduce((s, b) => s + (b.amount - (b.repaidAmount || 0)), 0)
-                  return <span className="font-medium text-sm text-warning">${outstanding.toLocaleString()}</span>
-                })()
-              }
-            </div>
-          </div>
+      {/* Monthly Summary */}
+      <div className="mt-6 grid grid-cols-3 gap-4">
+        <div className="rounded-lg border p-4 bg-tint-muted">
+          <p className="text-xs text-muted-foreground">{t('monthlyEarnings')}</p>
+          <p className="text-xl font-bold">${earningsThisMonth.toLocaleString()}</p>
         </div>
-
-        {/* Monthly Summary */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-lg border p-4 bg-tint-muted">
-            <p className="text-xs text-muted-foreground">Earnings</p>
-            <p className="text-xl font-bold">${earningsThisMonth.toLocaleString()}</p>
-          </div>
-          <div className="rounded-lg border p-4 bg-tint-muted">
-            <p className="text-xs text-muted-foreground">Actual Spending</p>
-            <p className="text-xl font-bold">${totalForView.toLocaleString()}</p>
-          </div>
-          <div className={`rounded-lg border p-4 ${variance >= 0 ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'}`}>
-            <p className="text-xs text-muted-foreground">Budget Position</p>
-            <p className="text-xl font-bold">{variance >= 0 ? `Under by $${variance.toLocaleString()}` : `Over by $${Math.abs(variance).toLocaleString()}`}</p>
-          </div>
+        <div className="rounded-lg border p-4 bg-tint-muted">
+          <p className="text-xs text-muted-foreground">{t('actualSpending')}</p>
+          <p className="text-xl font-bold">${totalForView.toLocaleString()}</p>
+        </div>
+        <div className={`rounded-lg border p-4 ${variance >= 0 ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'}`}>
+          <p className="text-xs text-muted-foreground">{t('budgetPosition')}</p>
+          <p className="text-xl font-bold">{variance >= 0 ? t('underBy', { amount: variance.toLocaleString() }) : t('overBy', { amount: Math.abs(variance).toLocaleString() })}</p>
         </div>
       </div>
 
-      {/* Entry Form */}
       <div className="bg-card rounded-xl border p-6 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
@@ -448,7 +463,7 @@ export default function Spending() {
       {/* Summary and Leaderboard */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-card rounded-xl border p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><PieChart className="w-5 h-5" />{monthLabel ? 'Top Categories (this month)' : t('topCategories')}</h2>
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><PieChart className="w-5 h-5" />{monthLabel ? t('topCategoriesThisMonth') : t('topCategories')}</h2>
           {topCategories.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {topCategories.map(([cat, amt]) => (
@@ -464,7 +479,7 @@ export default function Spending() {
 
           {/* Full category summary */}
           <div className="mt-6">
-            <h3 className="text-md font-semibold mb-3">Category Summary</h3>
+            <h3 className="text-md font-semibold mb-3">{t('categorySummary')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {Object.entries(byCategoryForView).map(([cat, amt]) => (
                 <div key={cat} className="flex items-center gap-3">
@@ -484,7 +499,7 @@ export default function Spending() {
           {/* Detailed Summary: Daily/Weekly breakdown */}
           <div className="mt-8">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-md font-semibold">Detailed Summary</h3>
+              <h3 className="text-md font-semibold">{t('detailedSummary')}</h3>
               <div className="inline-flex rounded-md border border-border overflow-hidden">
                 <button
                   className={`px-3 py-1 text-sm ${summaryMode === 'daily' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground'}`}
@@ -525,7 +540,7 @@ export default function Spending() {
                   <div key={w.label} className="p-2 rounded-md border border-border bg-tint-muted">
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{w.label}</span>
-                      <span>Days {w.range}</span>
+                      <span>{t('daysRange', { range: w.range })}</span>
                     </div>
                     <div className="mt-2 h-2 bg-muted rounded">
                       <div className="h-2 bg-primary rounded" style={{ width: `${Math.round((w.total / weeklyTotals.max) * 100)}%` }} />
@@ -563,6 +578,48 @@ export default function Spending() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      <AnimatePresence>
+        {pendingDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('confirmDeleteTitle')}
+            onClick={cancelDelete}
+          >
+            <div className="absolute inset-0 bg-black/40" />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-card border border-border rounded-2xl p-5 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold">{t('confirmDeleteTitle')}</h3>
+                <button onClick={cancelDelete} className="p-2 rounded hover:bg-muted" aria-label={t('cancel')}>
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                {pendingDelete.type === 'earning' && t('confirmDeleteEarning')}
+                {pendingDelete.type === 'plan' && t('confirmDeletePlan', { category: pendingDelete.cat })}
+                {pendingDelete.type === 'borrow' && t('confirmDeleteBorrow')}
+                {pendingDelete.type === 'category' && t('confirmDeleteCategory', { category: pendingDelete.cat })}
+              </p>
+              <div className="flex justify-end gap-2">
+                <button onClick={cancelDelete} className="px-3 py-2 border border-border rounded-md">{t('cancel')}</button>
+                <button onClick={confirmDelete} className="px-3 py-2 bg-destructive text-destructive-foreground rounded-md">{t('delete')}</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   )

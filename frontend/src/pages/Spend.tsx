@@ -3,6 +3,7 @@ import { useSpending } from '../contexts/SpendingContext'
 import { motion } from 'framer-motion'
 import { Wallet, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 function monthLabelFromKey(key: string) {
   const [y, m] = key.split('-').map(Number)
@@ -12,6 +13,7 @@ function monthLabelFromKey(key: string) {
 
 export default function SpendingSummary() {
   const { recentMonths, totalActualForMonth, totalEarningsForMonth, totalPlannedForMonth } = useSpending()
+  const { t } = useTranslation('spending')
 
   const now = new Date()
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -33,8 +35,8 @@ export default function SpendingSummary() {
             <Wallet className="w-5 h-5" />
           </span>
           <div>
-            <h1 className="text-3xl font-bold text-primary">Spending Overview</h1>
-            <p className="text-muted-foreground">All months at a glance</p>
+            <h1 className="text-3xl font-bold text-primary">{t('overviewTitle')}</h1>
+            <p className="text-muted-foreground">{t('overviewSubtitle')}</p>
           </div>
         </div>
       </header>
@@ -55,14 +57,14 @@ export default function SpendingSummary() {
                   <p className="text-xl font-bold">${actual.toLocaleString()}</p>
                 </div>
                 <Link to={`/spend/${m.key}`} className="text-sm text-primary inline-flex items-center gap-1 hover:underline">
-                  View details <ArrowRight size={14} />
+                  {t('viewDetails')} <ArrowRight size={14} />
                 </Link>
               </div>
 
               <div className="mt-3 space-y-2">
                 <div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Earnings</span>
+                    <span>{t('earningsSummary')}</span>
                     <span>${earnings.toLocaleString()}</span>
                   </div>
                   <div className="mt-1 h-2 bg-muted rounded">
@@ -71,7 +73,7 @@ export default function SpendingSummary() {
                 </div>
                 <div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Planned</span>
+                    <span>{t('plannedTitle')}</span>
                     <span>${planned.toLocaleString()}</span>
                   </div>
                   <div className="mt-1 h-2 bg-muted rounded">
@@ -80,7 +82,7 @@ export default function SpendingSummary() {
                 </div>
                 <div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Actual</span>
+                    <span>{t('actualTitle')}</span>
                     <span>${actual.toLocaleString()}</span>
                   </div>
                   <div className="mt-1 h-2 bg-muted rounded">
@@ -91,9 +93,9 @@ export default function SpendingSummary() {
 
               <div className={`mt-3 rounded-md border p-2 text-sm ${underBudget ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'}`}>
                 {underBudget ? (
-                  <span>Under budget by ${variance.toLocaleString()}</span>
+                  <span>{t('underBy', { amount: variance.toLocaleString() })}</span>
                 ) : (
-                  <span>Over budget by ${Math.abs(variance).toLocaleString()}</span>
+                  <span>{t('overBy', { amount: Math.abs(variance).toLocaleString() })}</span>
                 )}
               </div>
             </motion.div>
