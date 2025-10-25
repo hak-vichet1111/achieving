@@ -439,9 +439,31 @@ func RegisterSpendingRoutes(api *gin.RouterGroup, database *gorm.DB) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid month key"})
 			return
 		}
+		// Use a transaction to create month and seed dependent rows
+		tx := database.Begin()
+		if tx.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start transaction"})
+			return
+		}
 		m := Month{MonthKey: input.MonthKey}
-		if err := database.Create(&m).Error; err != nil {
+		if err := tx.Create(&m).Error; err != nil {
+			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create month"})
+			return
+		}
+		// Seed plans for all categories for this month (default plannedAmount = 0)
+		var cats []Category
+		if err := tx.Order("name asc").Find(&cats).Error; err == nil {
+			for _, cat := range cats {
+				var existing Plan
+				if err := tx.Where("month_key = ? AND category = ?", input.MonthKey, cat.Name).First(&existing).Error; err == gorm.ErrRecordNotFound {
+					_ = tx.Create(&Plan{ID: uuid.NewString(), MonthKey: input.MonthKey, Category: cat.Name, PlannedAmount: 0}).Error
+				}
+			}
+		}
+		// Commit
+		if err := tx.Commit().Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to commit transaction"})
 			return
 		}
 		c.JSON(http.StatusCreated, m)

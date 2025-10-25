@@ -226,7 +226,8 @@ const GoalDetails = () => {
       }
 
       // Show congratulation message
-      setCongratsMessage('Great job! Keep up the momentum! 🎉');
+-      setCongratsMessage('Great job! Keep up the momentum! 🎉');
++      setCongratsMessage(t('congratsMessage'));
       setShowCongrats(true);
       setTimeout(() => setShowCongrats(false), 3000);
       return next;
@@ -260,7 +261,7 @@ const GoalDetails = () => {
   }
   const remainingToSave = Math.max(0, proposedTargetAmount - Number(goal.savedAmount ?? 0));
   const requiredPerPeriod = periodsRemaining > 0 ? Math.round((remainingToSave / periodsRemaining) * 100) / 100 : undefined;
-  const periodLabel = proposedFrequency === 'daily' ? 'day' : proposedFrequency === 'weekly' ? 'week' : proposedFrequency === 'monthly' ? 'month' : '';
+  const periodLabel = proposedFrequency === 'daily' ? t('period_day') : proposedFrequency === 'weekly' ? t('period_week') : proposedFrequency === 'monthly' ? t('period_month') : '';
 
   return (
     <div className="w-full min-h-screen px-4 md:px-8 py-8">
@@ -327,30 +328,30 @@ const GoalDetails = () => {
                 {/* Extended fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm text-muted-foreground">Category</label>
+                    <label className="text-sm text-muted-foreground">{t('category')}</label>
                     <input
                       type="text"
                       value={editedGoal.category ?? ''}
                       onChange={(e) => setEditedGoal(prev => ({ ...prev, category: e.target.value || undefined }))}
                       className="w-full bg-transparent border border-border rounded-md p-2 focus:border-primary outline-none"
-                      placeholder="e.g., Travel, Emergency Fund"
+                      placeholder={t('category_placeholder')}
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-muted-foreground">Save Frequency</label>
+                    <label className="text-sm text-muted-foreground">{t('saveFrequency')}</label>
                     <select
                       value={editedGoal.saveFrequency ?? ''}
                       onChange={(e) => setEditedGoal(prev => ({ ...prev, saveFrequency: e.target.value || undefined }))}
                       className="w-full bg-transparent border border-border rounded-md p-2 focus:border-primary outline-none"
                     >
-                      <option value="">Select frequency</option>
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
+                      <option value="">{t('selectFrequency')}</option>
+                      <option value="daily">{t('daily')}</option>
+                      <option value="weekly">{t('weekly')}</option>
+                      <option value="monthly">{t('monthly')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm text-muted-foreground">Start Date</label>
+                    <label className="text-sm text-muted-foreground">{t('startDate')}</label>
                     <input
                       type="date"
                       value={editedGoal.startDate ? editedGoal.startDate.split('T')[0] : ''}
@@ -359,7 +360,7 @@ const GoalDetails = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-muted-foreground">End Date</label>
+                    <label className="text-sm text-muted-foreground">{t('targetDate')}</label>
                     <input
                       type="date"
                       value={editedGoal.endDate ? editedGoal.endDate.split('T')[0] : ''}
@@ -368,7 +369,7 @@ const GoalDetails = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-muted-foreground">Duration (months)</label>
+                    <label className="text-sm text-muted-foreground">{t('duration')} ({t('months')})</label>
                     <input
                       type="number"
                       min={0}
@@ -382,7 +383,7 @@ const GoalDetails = () => {
                     )}
                   </div>
                   <div>
-                    <label className="text-sm text-muted-foreground">Target Amount</label>
+                    <label className="text-sm text-muted-foreground">{t('targetAmount')}</label>
                     <input
                       type="number"
                       step="0.01"

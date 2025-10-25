@@ -8,12 +8,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, Award, Clock, Target, ArrowRight, Plus, Calendar, Wallet } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSpending } from '../contexts/SpendingContext';
+import { useTranslation } from 'react-i18next'
 
 const Dashboard = () => {
   const { theme } = useTheme();
   const { goals, addGoal, updateStatus, removeGoal } = useGoals();
   const { totalThisMonth, recentMonths } = useSpending();
   const navigate = useNavigate();
+  const { t } = useTranslation('dashboard')
 
   const notStarted = goals.filter(g => g.status === 'not_started').length;
   const inProgress = goals.filter(g => g.status === 'in_progress').length;
@@ -64,17 +66,17 @@ const Dashboard = () => {
       <motion.header variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/50 p-6 rounded-xl border border-border/50 backdrop-blur-sm">
         <div>
           <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
-            Your Dashboard
+            {t('header_title')}
           </h1>
-          <p className="text-muted-foreground mt-1">Track your goals and progress at a glance</p>
+          <p className="text-muted-foreground mt-1">{t('header_subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
             <Plus size={16} />
-            <span>New Goal</span>
+            <span>{t('new_goal')}</span>
           </button>
           <Link to="/goals" className="text-sm text-primary flex items-center gap-1 hover:underline">
-            View all <ArrowRight size={14} />
+            {t('view_all')} <ArrowRight size={14} />
           </Link>
         </div>
       </motion.header>
@@ -89,7 +91,7 @@ const Dashboard = () => {
             <Clock size={24} />
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Not Started</p>
+            <p className="text-sm font-medium text-muted-foreground">{t('status_not_started')}</p>
             <p className="text-3xl font-bold text-foreground">{notStarted}</p>
           </div>
         </motion.div>
@@ -102,7 +104,7 @@ const Dashboard = () => {
             <TrendingUp size={24} />
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">In Progress</p>
+            <p className="text-sm font-medium text-muted-foreground">{t('status_in_progress')}</p>
             <p className="text-3xl font-bold text-foreground">{inProgress}</p>
           </div>
         </motion.div>
@@ -115,7 +117,7 @@ const Dashboard = () => {
             <Award size={24} />
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Completed</p>
+            <p className="text-sm font-medium text-muted-foreground">{t('status_completed')}</p>
             <p className="text-3xl font-bold text-foreground">{completed}</p>
           </div>
         </motion.div>
@@ -133,9 +135,9 @@ const Dashboard = () => {
               <Wallet size={24} />
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Spent This Month</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('spent_this_month')}</p>
               <p className="text-3xl font-bold text-foreground">${totalThisMonth.toLocaleString()}</p>
-              <Link to={`/spend/${currentMonthKey}`} className="text-xs text-primary hover:underline">View spending</Link>
+              <Link to={`/spend/${currentMonthKey}`} className="text-xs text-primary hover:underline">{t('view_spending')}</Link>
             </div>
           </div>
         </motion.div>
@@ -146,14 +148,14 @@ const Dashboard = () => {
           className="lg:col-span-2 bg-card rounded-xl p-6 border border-border transition-all"
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Last Months</h3>
+            <h3 className="text-lg font-semibold">{t('last_months')}</h3>
             <select
               value={chartType}
               onChange={(e) => setChartType(e.target.value as any)}
               className="text-sm bg-transparent border border-border rounded-md px-2 py-1"
             >
-              <option value="bars">Bars</option>
-              <option value="line">Line</option>
+              <option value="bars">{t('chart_bars')}</option>
+              <option value="line">{t('chart_line')}</option>
             </select>
           </div>
 
@@ -223,19 +225,19 @@ const Dashboard = () => {
         <div className="bg-card rounded-xl p-6 border border-border flex items-center gap-6">
           <ProgressRing progress={completionPercent} size={96} strokeWidth={8} />
           <div>
-            <p className="text-sm text-muted-foreground">Overall Progress</p>
+            <p className="text-sm text-muted-foreground">{t('overall_progress')}</p>
             <p className="text-2xl font-bold">{completionPercent}%</p>
-            <p className="text-sm text-muted-foreground">Completed {completed} of {total}</p>
+            <p className="text-sm text-muted-foreground">{t('completed_of_total', { completed, total })}</p>
           </div>
         </div>
 
         <div className="lg:col-span-2 bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-2 mb-4">
             <Calendar className="text-primary" size={18} />
-            <h2 className="text-lg font-semibold">Upcoming Targets</h2>
+            <h2 className="text-lg font-semibold">{t('upcoming_targets')}</h2>
           </div>
           {upcomingGoals.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No upcoming target dates.</p>
+            <p className="text-sm text-muted-foreground">{t('no_upcoming_targets')}</p>
           ) : (
             <ul className="divide-y divide-border">
               {upcomingGoals.map(g => (
@@ -243,11 +245,11 @@ const Dashboard = () => {
                   <div>
                     <p className="font-medium">{g.title}</p>
                     {g.targetDate && (
-                      <p className="text-xs text-muted-foreground">Target: {new Date(g.targetDate).toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground">{t('target_label', { date: new Date(g.targetDate).toLocaleDateString() })}</p>
                     )}
                   </div>
                   <Link to={`/goals`} className="text-sm text-primary flex items-center gap-1 hover:underline">
-                    View <ArrowRight size={14} />
+                    {t('view')} <ArrowRight size={14} />
                   </Link>
                 </li>
               ))}
@@ -261,7 +263,7 @@ const Dashboard = () => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Target className="text-primary" size={20} />
-            <h2 className="text-xl font-semibold">Goals</h2>
+            <h2 className="text-xl font-semibold">{t('goals_title')}</h2>
           </div>
         </div>
 
@@ -271,35 +273,35 @@ const Dashboard = () => {
             onClick={() => setStatusFilter('all')}
             className={`px-4 py-2 text-sm font-medium ${statusFilter === 'all' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
           >
-            All
+            {t('filter_all')}
           </button>
           <button
             onClick={() => setStatusFilter('not_started')}
             className={`px-4 py-2 text-sm font-medium ${statusFilter === 'not_started' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
           >
-            Not Started
+            {t('filter_not_started')}
           </button>
           <button
             onClick={() => setStatusFilter('in_progress')}
             className={`px-4 py-2 text-sm font-medium ${statusFilter === 'in_progress' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
           >
-            In Progress
+            {t('filter_in_progress')}
           </button>
           <button
             onClick={() => setStatusFilter('completed')}
             className={`px-4 py-2 text-sm font-medium ${statusFilter === 'completed' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
           >
-            Completed
+            {t('filter_completed')}
           </button>
         </div>
 
         {filteredGoals.length === 0 ? (
           <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed border-border">
             <Target className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground mb-4">No goals match this filter.</p>
+            <p className="text-muted-foreground mb-4">{t('no_goals_filter')}</p>
             <button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
               <Plus size={16} />
-              <span>Create Goal</span>
+              <span>{t('create_goal')}</span>
             </button>
           </div>
         ) : (

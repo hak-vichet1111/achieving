@@ -1,10 +1,12 @@
 import React from 'react';
-import { useTheme } from '../hooks/useTheme';
-import ThemeSwitcher from './ThemeSwitcher';
+// import { useTheme } from '../hooks/useTheme';
+// replace bulky switchers with dropdown selector
+import ThemeDropdown from './ThemeSwicher';
 import { useTranslation } from 'react-i18next';
-import LanguageSelection from './LanguageSelection';
+import LanguageToggle from './LanguageToggle';
 import { Home, FolderOpen, Users, Calendar, FileText, BarChart3, Settings, X, Info, ChevronRight, Target, CheckSquare, Wallet } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
+import UserProfile from './UserProfile'
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -27,11 +29,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     ],
     showThemeSwitcher = true,
 }) => {
-    const { theme } = useTheme();
+    // const { theme } = useTheme();
     const { t } = useTranslation('sidebar');
     const location = useLocation();
 
-    // Default icons using Lucide React icons with improved styling
     const defaultIcons = {
         document: <Home className="w-5 h-5" />,
         dashboard: <Home className="w-5 h-5" />,
@@ -61,11 +62,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 />
             )}
             <aside
-                className={`fixed inset-y-0 left-0 z-40 w-64 sm:w-72 bg-card/95 backdrop-blur-sm border-r border-border shadow-lg transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0 ' : '-translate-x-full'} lg:static lg:sticky lg:top-0 lg:translate-x-0 lg:transform-none lg:shadow-none`}
+                className={`fixed inset-y-0 left-0 z-40 w-64 sm:w-72 bg-card/95 backdrop-blur-sm border-r border-border shadow-lg transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0 ' : '-translate-x-full'} lg:static lg:sticky lg:top-0 lg:translate-x-0 lg:transform-none`}
             >
                 <div className="h-full lg:h-screen flex flex-col overflow-y-auto">
                     {/* Header */}
-                    {/* Sidebar header with gradient accent */}
                     <div className="relative h-20 flex items-center justify-between px-6 border-b border-border overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-50"></div>
                         <div className="relative z-10 flex items-center">
@@ -86,7 +86,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                         )}
                     </div>
 
-                    {/* Navigation links with improved visual hierarchy */}
+                    {/* User profile */}
+                    <UserProfile name="Guest" email="guest@example.com" />
+
+                    {/* Navigation */}
                     <nav className="flex-1 overflow-y-auto py-6 px-4">
                         <div className="mb-2 px-4">
                             <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Main Navigation</h3>
@@ -112,28 +115,28 @@ const Sidebar: React.FC<SidebarProps> = ({
                                             {isActive && <ChevronRight className="w-4 h-4 text-primary opacity-70" />}
                                         </NavLink>
                                     </li>
-                            );
-                        })}
-                    </ul>
-                </nav>
+                                );
+                            })}
+                        </ul>
+                    </nav>
 
-                {/* Theme switcher with improved styling */}
-                {showThemeSwitcher && (
-                    <div className="p-4 border-t border-border/50 bg-card/50">
-                        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">{t('theme')}</p>
-                        <ThemeSwitcher />
-                    </div>
-                )}
+                    {/* Theme + Language row */}
+                    {showThemeSwitcher && (
+                        <div className="p-4 border-t border-border/50 bg-card/50">
+                            <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">{t('theme')}</p>
+                            <div className="flex items-center gap-2">
+                                <div className="flex-1">
+                                    <ThemeDropdown />
+                                </div>
+                                <LanguageToggle />
+                            </div>
+                        </div>
+                    )}
 
-                {/* Language selection with improved styling */}
-                <div className="p-4 border-t border-border/50 bg-card/50">
-                    <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">{t('language') || 'Language'}</p>
-                    <LanguageSelection />
                 </div>
-            </div>
-        </aside>
-    </>
-);
+            </aside>
+        </>
+    );
 };
 
 export default Sidebar;

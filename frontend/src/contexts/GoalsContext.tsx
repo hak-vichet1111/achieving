@@ -88,6 +88,18 @@ const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:80
 export function GoalsProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(goalsReducer, initialState)
 
+  // Centralized refetch for goals
+  const reloadGoals = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/goals`)
+      if (!res.ok) return
+      const data: Goal[] = await res.json()
+      dispatch({ type: 'HYDRATE', payload: data })
+    } catch (e) {
+      console.warn('Failed to refetch goals', e)
+    }
+  }
+
   // Hydrate from backend
   useEffect(() => {
     const load = async () => {
@@ -127,6 +139,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok) throw new Error('Failed to create goal')
         const created: Goal = await res.json()
         dispatch({ type: 'ADD_GOAL', payload: created })
+        reloadGoals()
       } catch (e) {
         console.warn('Failed to create goal', e)
       }
@@ -140,6 +153,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
         })
         if (!res.ok) throw new Error('Failed to update status')
         dispatch({ type: 'UPDATE_STATUS', payload: { id, status } })
+        reloadGoals()
       } catch (e) {
         console.warn('Failed to update goal status', e)
       }
@@ -149,6 +163,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
         const res = await fetch(`${API_BASE}/api/goals/${id}`, { method: 'DELETE' })
         if (!res.ok) throw new Error('Failed to delete goal')
         dispatch({ type: 'REMOVE_GOAL', payload: { id } })
+        reloadGoals()
       } catch (e) {
         console.warn('Failed to delete goal', e)
       }
@@ -163,6 +178,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok) throw new Error('Failed to update amount')
         const updated: Goal = await res.json()
         dispatch({ type: 'UPDATE_AMOUNT', payload: { id, currentAmount: updated.currentAmount ?? currentAmount } })
+        reloadGoals()
       } catch (e) {
         console.warn('Failed to update current amount', e)
       }
@@ -177,6 +193,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok) throw new Error('Failed to update goal')
         const updated: Goal = await res.json()
         dispatch({ type: 'UPDATE_GOAL', payload: updated })
+        reloadGoals()
       } catch (e) {
         console.warn('Failed to update goal', e)
       }
