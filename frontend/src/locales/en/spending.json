@@ -59,10 +59,15 @@
   "confirmDeletePlan": "Delete plan for {{category}}?",
   "confirmDeleteBorrow": "Delete this borrow?",
   "confirmDeleteCategory": "Delete category {{category}}?",
+  "confirmDeleteEntry": "Delete this spending?",
+  "confirmDeleteMonth": "Delete this month?",
   "cancel": "Cancel",
   "delete": "Delete",
   "toastDeletedBorrow": "Deleted borrow",
   "toastDeletedCategory": "Deleted category {{category}}",
+
+  "confirmAddTitle": "Confirm Add",
+  "confirmAddEntry": "Add spending ${{amount}} to {{category}} on {{date}}?",
 
   "quickAddTitle": "Quick Add Spending",
   "noteOptional": "Note (optional)",
@@ -72,5 +77,9 @@
   "toastInvalidAmount": "Please enter a valid amount",
   "toastCatExceedsPlan": "Warning: {{category}} exceeds plan for {{month}}",
   "toastTotalExceedsPlan": "Warning: Total spending exceeds plan for {{month}}",
-  "toastAddedSpending": "Added spending: {{category}} ${{amount}}"
+  "toastAddedSpending": "Added spending: {{category}} ${{amount}}",
+  "toastMonthCreated": "Created {{month}}",
+  "toastMonthDeleted": "Deleted {{month}}",
+  "toastMonthExists": "Month {{month}} already exists",
+  "toastWrongMonth": "You are viewing {{view}}. Pick a date in this month."
 }

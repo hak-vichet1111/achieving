@@ -59,10 +59,15 @@
   "confirmDeletePlan": "លុបផែនការសម្រាប់ {{category}}?",
   "confirmDeleteBorrow": "លុបការខ្ចីនេះ?",
   "confirmDeleteCategory": "លុបប្រភេទ {{category}}?",
+  "confirmDeleteEntry": "លុបចំណាយនេះ?",
+  "confirmDeleteMonth": "លុបខែនេះ?",
   "cancel": "បោះបង់",
   "delete": "លុប",
   "toastDeletedBorrow": "បានលុបការខ្ចី",
   "toastDeletedCategory": "បានលុបប្រភេទ {{category}}",
+
+  "confirmAddTitle": "បញ្ជាក់ការបន្ថែម",
+  "confirmAddEntry": "បន្ថែមការចំណាយ ${{amount}} ទៅ {{category}} នៅ {{date}}?",
 
   "quickAddTitle": "បញ្ចូលការចំណាយរហ័ស",
   "noteOptional": "ចំណាំ (ជាជម្រើស)",
@@ -72,5 +77,9 @@
   "toastInvalidAmount": "សូមបញ្ចូលចំនួនទឹកប្រាក់ត្រឹមត្រូវ",
   "toastCatExceedsPlan": "ព្រមាន៖ {{category}} លើសផែនការសម្រាប់ {{month}}",
   "toastTotalExceedsPlan": "ព្រមាន៖ ការចំណាយសរុប លើសផែនការសម្រាប់ {{month}}",
-  "toastAddedSpending": "បានបញ្ចូលការចំណាយ៖ {{category}} ${{amount}}"
+  "toastAddedSpending": "បានបញ្ចូលការចំណាយ៖ {{category}} ${{amount}}",
+  "toastMonthCreated": "បានបង្កើត {{month}}",
+  "toastMonthDeleted": "បានលុប {{month}}",
+  "toastMonthExists": "ខែ {{month}} មានរួចហើយ",
+  "toastWrongMonth": "អ្នកកំពុងមើល {{view}}។ សូមជ្រើសកាលបរិច្ឆេទនៅខែនេះ។"
 }

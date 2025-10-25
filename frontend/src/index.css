@@ -92,26 +92,26 @@
 
   /* ====== Luxury Theme ====== */
   .luxury {
-    --background: oklch(0.12 0.02 70); /* dark brown */
-    --foreground: oklch(0.98 0 0);     /* gold text */
+    --background: oklch(0.11 0.02 70);
+    --foreground: oklch(0.98 0 0);
 
-    --card: oklch(0.18 0.03 70);
-    --card-foreground: oklch(0.95 0.1 90);
+    --card: oklch(0.16 0.02 70);
+    --card-foreground: oklch(85.391% 0.12848 88.048);
 
-    --primary: oklch(0.75 0.2 90);     /* gold */
-    --primary-foreground: oklch(0.15 0.02 70);
+    --primary: oklch(0.7908 0.185 76.1); /* vivid gold */
+    --primary-foreground: oklch(0.12 0.02 70);
 
-    --secondary: oklch(0.3 0.02 70);
+    --secondary: oklch(0.28 0.02 70);
     --secondary-foreground: oklch(0.98 0 0);
 
-    --accent: oklch(0.7 0.15 100);     /* warm yellow */
-    --accent-foreground: oklch(0.15 0.02 70);
+    --accent: oklch(73.417% 0.12493 95.563); /* bright warm gold */
+    --accent-foreground: oklch(0.12 0.02 70);
 
     --destructive: oklch(0.6 0.25 29);
 
-    --border: oklch(0.3 0.02 70);
-    --input: oklch(0.3 0.02 70);
-    --ring: oklch(0.75 0.2 90);
+    --border: oklch(0.28 0.02 70);
+    --input: oklch(0.28 0.02 70);
+    --ring: oklch(0.88 0.2 95);
 
     /* Improve readability on tinted backgrounds */
     --muted: oklch(0.28 0.02 70);
@@ -120,21 +120,21 @@
   
   /* ====== Progress Colors ====== */
   :root {
-    --warning: oklch(0.7 0.15 50);   /* orange */
-    --amber-500: oklch(0.75 0.2 80); /* amber */
-    --success: oklch(0.65 0.25 120); /* green */
+    --warning: oklch(63.569% 0.21176 29.263);   /* orange */
+    --amber-500: oklch(78.478% 0.15929 75.381); /* amber */
+    --success: oklch(79.827% 0.2636 142.704); /* green */
   }
 
   .dark {
-    --warning: oklch(0.65 0.2 50);
+    --warning: oklch(51.907% 0.19713 31.554);
     --amber-500: oklch(0.7 0.25 80);
-    --success: oklch(0.6 0.3 120);
+    --success: oklch(73.279% 0.22663 145.304);
   }
 
   .space {
-    --warning: oklch(0.6 0.25 45);
+    --warning: oklch(57.591% 0.21632 9.718);
     --amber-500: oklch(0.65 0.3 75);
-    --success: oklch(0.55 0.35 115);
+    --success: oklch(69.136% 0.13496 170.126);
   }
 
   .luxury {

@@ -1,7 +1,7 @@
 {
   "dashboard": "Dashboard",
   "goals": "Goals",
-  "spending": "Spending",
+  "spend": "Spend",
   "tasks": "Tasks",
   "projects": "Projects",
   "team": "Team",
@@ -10,5 +10,9 @@
   "reports": "Reports",
   "settings": "Settings",
   "language": "Language",
-  "theme": "Theme"
+  "theme": "Theme",
+  "light": "Light",
+  "dark": "Dark",
+  "space": "Space",
+  "gold": "Gold"
 }

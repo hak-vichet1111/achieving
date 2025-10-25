@@ -13,5 +13,18 @@
   "remainingToSave": "Remaining to save:",
   "neededPer": "Needed per {{period}}:",
   "selectFrequencyHint": "Select save frequency to see required per-period amount.",
-  "checkDatesHint": "Check dates/duration; end must be after today to compute."
+  "checkDatesHint": "Check dates/duration; end must be after today to compute.",
+  "target": "Target",
+  "targetAmount": "Target Amount",
+  "category": "Category",
+  "category_placeholder": "e.g., Travel, Emergency Fund",
+  "selectFrequency": "Select frequency",
+  "daily": "Daily",
+  "weekly": "Weekly",
+  "monthly": "Monthly",
+  "period_day": "day",
+  "period_week": "week",
+  "period_month": "month",
+  "disabledAfterProgress": "Disabled after progress starts.",
+  "congratsMessage": "Great job! Keep up the momentum! 🎉"
 }
