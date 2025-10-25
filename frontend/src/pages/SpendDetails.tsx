@@ -1,10 +1,12 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 // updated: fix collapsible JSX structure
 import { useSpending } from '../contexts/SpendingContext'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Wallet, Plus, Trash2, PieChart, CalendarDays, DollarSign, ClipboardList, HandCoins, CheckCircle, AlertTriangle, XCircle, ArrowLeft } from 'lucide-react'
+import ConfirmModal from '../components/ConfirmModal'
+import { Wallet, Plus, Trash2, PieChart, CalendarDays, DollarSign, ClipboardList, HandCoins, CheckCircle, AlertTriangle, XCircle, ArrowLeft, ChevronDown } from 'lucide-react'
 import { useParams } from 'react-router-dom'
+import { getMonthBounds } from '../utils/month'
 
 
 function monthKeyFromDate(y: number, m: number) {
@@ -24,6 +26,7 @@ export default function Spending() {
   const [form, setForm] = useState({ amount: '', category: (categories[0] || 'Food'), date: new Date().toISOString().split('T')[0], note: '' })
   const { monthId } = useParams()
   const monthParam = monthId || null // YYYY-MM
+  const bounds = monthParam ? getMonthBounds(monthParam) : null
   const [summaryMode, setSummaryMode] = useState<'daily' | 'weekly'>('daily')
   // Toggle Spending Configuration panel
   const [configOpen, setConfigOpen] = useState(true)
@@ -33,7 +36,7 @@ export default function Spending() {
   const [planForm, setPlanForm] = useState({ category: (categories[0] || 'Food'), amount: '' })
   const [borrowForm, setBorrowForm] = useState({ from: '', amount: '', date: new Date().toISOString().split('T')[0] })
   const [newCategory, setNewCategory] = useState('')
-  const [pendingDelete, setPendingDelete] = useState<null | { type: 'earning' | 'plan' | 'borrow' | 'category', id?: string, cat?: string }>(null)
+  const [pendingDelete, setPendingDelete] = useState<null | { type: 'earning' | 'plan' | 'borrow' | 'category' | 'entry', id?: string, cat?: string }>(null)
   const [toasts, setToasts] = useState<Array<{ id: string, message: string, variant: 'success' | 'warning' | 'deleted' }>>([])
   // Quick Add handled globally via LayoutSidebar
   // Local Quick Add form removed; using global QuickAdd component
@@ -72,6 +75,10 @@ export default function Spending() {
     if (!amountNum || amountNum <= 0) { showToast('Please enter a valid amount', 'warning'); return }
     const d = new Date(form.date)
     const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    if (monthParam && monthKey !== monthParam) {
+      showToast(t('toastWrongMonth', { view: monthParam, entry: monthKey }), 'warning')
+      return
+    }
     const plannedTotal = totalPlannedForMonth(monthKey)
     const actualTotal = entries.reduce((sum, e) => {
       const ed = new Date(e.date)
@@ -159,10 +166,52 @@ export default function Spending() {
   const plannedByCategory = useMemo(() => byCategoryPlannedForMonth(currentMonthKey), [currentMonthKey, byCategoryPlannedForMonth])
   const variance = useMemo(() => earningsThisMonth - totalForView, [earningsThisMonth, totalForView])
 
+  // Recent entries sorted by date (desc), limited to 8
+  const recentEntries = useMemo(() => {
+    return [...filteredEntries]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 8)
+  }, [filteredEntries])
+
+  // Group recent entries by day
+  const recentByDay = useMemo(() => {
+    const groups: { dayKey: string, date: Date, items: typeof recentEntries }[] = []
+    let lastKey: string | null = null
+    let current: { dayKey: string, date: Date, items: typeof recentEntries } | null = null
+    for (const e of recentEntries) {
+      const d = new Date(e.date)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      if (lastKey !== key) {
+        current = { dayKey: key, date: d, items: [] as any }
+        groups.push(current)
+        lastKey = key
+      }
+      (current!.items as any).push(e)
+    }
+    return groups
+  }, [recentEntries])
+
+  // Track open/closed state for each day (default: open the most recent day)
+  const [openDays, setOpenDays] = useState<Record<string, boolean>>({})
+  useEffect(() => {
+    if (recentByDay.length > 0) {
+      setOpenDays({ [recentByDay[0].dayKey]: true })
+    } else {
+      setOpenDays({})
+    }
+  }, [recentByDay])
+
+  const toggleDay = (key: string) => setOpenDays(prev => ({ ...prev, [key]: !prev[key] }))
   const handleAddEarning = () => {
     const amt = Number(earningForm.amount)
     if (!amt || !earningForm.source) {
       showToast('Please provide a source and a valid amount', 'warning')
+      return
+    }
+    const ed = new Date(earningForm.date)
+    const earningMonth = `${ed.getFullYear()}-${String(ed.getMonth() + 1).padStart(2, '0')}`
+    if (monthParam && earningMonth !== monthParam) {
+      showToast(t('toastWrongMonth', { view: monthParam, entry: earningMonth }), 'warning')
       return
     }
     addEarning({ source: earningForm.source, amount: amt, date: earningForm.date })
@@ -184,6 +233,12 @@ export default function Spending() {
       showToast('Please provide a name and a valid amount', 'warning')
       return
     }
+    const bd = new Date(borrowForm.date)
+    const borrowMonth = `${bd.getFullYear()}-${String(bd.getMonth() + 1).padStart(2, '0')}`
+    if (monthParam && borrowMonth !== monthParam) {
+      showToast(t('toastWrongMonth', { view: monthParam, entry: borrowMonth }), 'warning')
+      return
+    }
     addBorrow({ from: borrowForm.from, amount: amt, date: borrowForm.date })
     showToast(`Added borrow: ${borrowForm.from} $${amt.toLocaleString()}`, 'success')
     setBorrowForm({ from: '', amount: '', date: new Date().toISOString().split('T')[0] })
@@ -203,6 +258,9 @@ export default function Spending() {
     } else if (pendingDelete.type === 'category' && pendingDelete.cat) {
       removeCategory(pendingDelete.cat)
       showToast(t('toastDeletedCategory', { category: pendingDelete.cat }), 'deleted')
+    } else if (pendingDelete.type === 'entry' && pendingDelete.id != null) {
+      removeEntry(pendingDelete.id)
+      showToast('Deleted spending', 'deleted')
     }
     setPendingDelete(null)
   }
@@ -250,7 +308,7 @@ export default function Spending() {
                 <div className="space-y-2">
                   <input className="w-full bg-transparent border border-border rounded-md p-2" placeholder={t('sourcePlaceholder')} value={earningForm.source} onChange={e => setEarningForm(prev => ({ ...prev, source: e.target.value }))} />
                   <input className="w-full bg-transparent border border-border rounded-md p-2" type="number" placeholder={t('amount')} value={earningForm.amount} onChange={e => setEarningForm(prev => ({ ...prev, amount: e.target.value }))} />
-                  <input className="w-full bg-transparent border border-border rounded-md p-2" type="date" value={earningForm.date} onChange={e => setEarningForm(prev => ({ ...prev, date: e.target.value }))} />
+                  <input className="w-full bg-transparent border border-border rounded-md p-2" type="date" value={earningForm.date} onChange={e => setEarningForm(prev => ({ ...prev, date: e.target.value }))} {...(bounds ? { min: bounds.min, max: bounds.max } : {})} />
                   <button onClick={handleAddEarning} className="w-full bg-primary text-primary-foreground rounded-md py-2">{t('addEarning')}</button>
                 </div>
                 <div className="mt-3 text- text-muted-foreground">{t('totalEarningsForMonth', { month: currentMonthKey })} <span className="font-medium text-lg text-primary">${earningsThisMonth.toLocaleString()}</span></div>
@@ -349,7 +407,7 @@ export default function Spending() {
                 <div className="space-y-2">
                   <input className="w-full bg-transparent border border-border rounded-md p-2" placeholder={t('fromPlaceholder')} value={borrowForm.from} onChange={e => setBorrowForm(prev => ({ ...prev, from: e.target.value }))} />
                   <input className="w-full bg-transparent border border-border rounded-md p-2" type="number" placeholder={t('amount')} value={borrowForm.amount} onChange={e => setBorrowForm(prev => ({ ...prev, amount: e.target.value }))} />
-                  <input className="w-full bg-transparent border border-border rounded-md p-2" type="date" value={borrowForm.date} onChange={e => setBorrowForm(prev => ({ ...prev, date: e.target.value }))} />
+                  <input className="w-full bg-transparent border border-border rounded-md p-2" type="date" value={borrowForm.date} onChange={e => setBorrowForm(prev => ({ ...prev, date: e.target.value }))} {...(bounds ? { min: bounds.min, max: bounds.max } : {})} />
                   <button onClick={handleAddBorrow} className="w-full bg-primary text-primary-foreground rounded-md py-2">{t('addBorrow')}</button>
                 </div>
                 <ul className="mt-3 space-y-2 max-h-40 overflow-auto">
@@ -439,6 +497,7 @@ export default function Spending() {
               value={form.date}
               onChange={(e) => setForm(prev => ({ ...prev, date: e.target.value }))}
               className="w-full bg-transparent border border-border rounded-md p-2 focus:border-primary"
+              {...(bounds ? { min: bounds.min, max: bounds.max } : {})}
             />
           </div>
           <div className="md:col-span-2">
@@ -553,26 +612,45 @@ export default function Spending() {
           </div>
         </div>
         <div className="bg-card rounded-xl border p-6">
+
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><CalendarDays className="w-5 h-5" />{t('recentSpending')}</h2>
           <AnimatePresence initial={false}>
-            {filteredEntries.slice(0, 8).map((e) => (
-              <motion.div
-                key={e.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="flex items-center justify-between py-2 border-b border-border/50"
-              >
-                <div>
-                  <p className="font-medium">${e.amount.toLocaleString()} • {e.category}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(e.date).toLocaleDateString()} {e.note ? `• ${e.note}` : ''}</p>
-                </div>
-                <button onClick={() => removeEntry(e.id)} className="p-2 rounded hover:bg-muted text-muted-foreground">
-                  <Trash2 className="w-4 h-4" />
+            {recentByDay.map(group => (
+              <div key={group.dayKey} className="mb-2">
+                <button
+                  className="w-full flex items-center justify-between py-2 px-2 rounded hover:bg-muted text-sm text-muted-foreground"
+                  onClick={() => toggleDay(group.dayKey)}
+                >
+                  <span className="flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4" />
+                    {group.date.toLocaleDateString()}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${openDays[group.dayKey] ? 'rotate-180' : ''}`} />
                 </button>
-              </motion.div>
+                {openDays[group.dayKey] && (
+                  <div>
+                    {group.items.map((e) => (
+                      <motion.div
+                        key={e.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="flex items-center justify-between py-2 border-b border-border/50"
+                      >
+                        <div>
+                          <p className="font-medium">${e.amount.toLocaleString()} • {e.category}</p>
+                          <p className="text-xs text-muted-foreground">{e.note ? e.note : ''}</p>
+                        </div>
+                        <button onClick={() => setPendingDelete({ type: 'entry', id: e.id })} className="p-2 rounded hover:bg-muted text-muted-foreground">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
-            {filteredEntries.length === 0 && (
+            {recentEntries.length === 0 && (
               <p className="text-muted-foreground">{t('noSpendingYet')}</p>
             )}
           </AnimatePresence>
@@ -580,47 +658,25 @@ export default function Spending() {
       </div>
 
       {/* Delete confirmation modal */}
-      <AnimatePresence>
-        {pendingDelete && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50"
-            role="dialog"
-            aria-modal="true"
-            aria-label={t('confirmDeleteTitle')}
-            onClick={cancelDelete}
-          >
-            <div className="absolute inset-0 bg-black/40" />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm bg-card border border-border rounded-2xl p-5 shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-semibold">{t('confirmDeleteTitle')}</h3>
-                <button onClick={cancelDelete} className="p-2 rounded hover:bg-muted" aria-label={t('cancel')}>
-                  <XCircle className="w-5 h-5" />
-                </button>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                {pendingDelete.type === 'earning' && t('confirmDeleteEarning')}
-                {pendingDelete.type === 'plan' && t('confirmDeletePlan', { category: pendingDelete.cat })}
-                {pendingDelete.type === 'borrow' && t('confirmDeleteBorrow')}
-                {pendingDelete.type === 'category' && t('confirmDeleteCategory', { category: pendingDelete.cat })}
-              </p>
-              <div className="flex justify-end gap-2">
-                <button onClick={cancelDelete} className="px-3 py-2 border border-border rounded-md">{t('cancel')}</button>
-                <button onClick={confirmDelete} className="px-3 py-2 bg-destructive text-destructive-foreground rounded-md">{t('delete')}</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-    </div>
-  )
-}
+      <ConfirmModal
+        open={!!pendingDelete}
+        title={t('confirmDeleteTitle')}
+        message={pendingDelete ? (
+          <>
+            {pendingDelete.type === 'earning' && t('confirmDeleteEarning')}
+            {pendingDelete.type === 'plan' && t('confirmDeletePlan', { category: pendingDelete.cat })}
+            {pendingDelete.type === 'borrow' && t('confirmDeleteBorrow')}
+            {pendingDelete.type === 'category' && t('confirmDeleteCategory', { category: pendingDelete.cat })}
+            {pendingDelete.type === 'entry' && t('confirmDeleteEntry')}
+          </>
+        ) : null}
+        confirmText={t('delete')}
+        cancelText={t('cancel')}
+        variant="destructive"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
+  
+     </div>
+   )
+ }

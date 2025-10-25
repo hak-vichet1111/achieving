@@ -66,7 +66,7 @@ type SpendingContextType = {
 }
 
 const SpendingContext = createContext<SpendingContextType | undefined>(undefined)
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8081'
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080'
 const STORAGE_KEY = 'achieving_spending_entries'
 const STORAGE_EARN = 'achieving_spending_earnings'
 const STORAGE_PLANS = 'achieving_spending_plans'
@@ -87,117 +87,57 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES)
   const [months, setMonths] = useState<string[]>([])
 
-  useEffect(() => {
+  // Centralized refetch to keep app in sync after mutations
+  const refetchAll = async () => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      const parsed: SpendingEntry[] = raw ? JSON.parse(raw) : []
-      setEntries(parsed)
-    } catch (e) {
-      console.warn('Failed to parse spending from storage', e)
-    }
-    try {
-      const rawEarn = localStorage.getItem(STORAGE_EARN)
-      setEarnings(rawEarn ? JSON.parse(rawEarn) : [])
-    } catch (e) {
-      console.warn('Failed to parse earnings from storage', e)
-    }
-    try {
-      const rawPlans = localStorage.getItem(STORAGE_PLANS)
-      setPlansByMonth(rawPlans ? JSON.parse(rawPlans) : {})
-    } catch (e) {
-      console.warn('Failed to parse plans from storage', e)
-    }
-    try {
-      const rawBorrows = localStorage.getItem(STORAGE_BORROWS)
-      setBorrows(rawBorrows ? JSON.parse(rawBorrows) : [])
-    } catch (e) {
-      console.warn('Failed to parse borrows from storage', e)
-    }
-    try {
-      const rawCats = localStorage.getItem(STORAGE_CATEGORIES)
-      setCategories(rawCats ? JSON.parse(rawCats) : DEFAULT_CATEGORIES)
-    } catch (e) {
-      console.warn('Failed to parse categories from storage', e)
-    }
-  }, [])
-
-  // Hydrate months from backend
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/months`)
-        if (res.ok) {
-          const data = await res.json()
-          const list = Array.isArray(data) ? data.map((m: any) => m.monthKey) : []
-          setMonths(list)
-        }
-      } catch (e) {
-        console.warn('Failed to fetch months', e)
+      const [monthsRes, spRes, earnRes, borRes, catRes, planRes] = await Promise.all([
+        fetch(`${API_BASE}/api/months`),
+        fetch(`${API_BASE}/api/spending`),
+        fetch(`${API_BASE}/api/earnings`),
+        fetch(`${API_BASE}/api/borrows`),
+        fetch(`${API_BASE}/api/categories`),
+        fetch(`${API_BASE}/api/plans`),
+      ])
+      if (monthsRes.ok) {
+        const monthsData = await monthsRes.json()
+        const list = Array.isArray(monthsData) ? monthsData.map((m: any) => m.monthKey) : []
+        setMonths(list)
       }
-    })()
-  }, [])
-
-  // Hydrate from backend (fallback to localStorage if requests fail)
-  useEffect(() => {
-    const loadBackend = async () => {
-      try {
-        const [spRes, earnRes, borRes, catRes, planRes] = await Promise.all([
-          fetch(`${API_BASE}/api/spending`),
-          fetch(`${API_BASE}/api/earnings`),
-          fetch(`${API_BASE}/api/borrows`),
-          fetch(`${API_BASE}/api/categories`),
-          fetch(`${API_BASE}/api/plans`),
-        ])
-        if (spRes.ok) {
-          const data: SpendingEntry[] = await spRes.json()
-          setEntries(data)
-        }
-        if (earnRes.ok) {
-          const data: EarningEntry[] = await earnRes.json()
-          setEarnings(data)
-        }
-        if (borRes.ok) {
-          const data: BorrowEntry[] = await borRes.json()
-          setBorrows(data)
-        }
-        if (catRes.ok) {
-          const data: { name: string }[] = await catRes.json()
-          const names = data.map(c => c.name)
-          setCategories(names.length ? names : DEFAULT_CATEGORIES)
-        }
-        if (planRes.ok) {
-          const data: { monthKey: string, category: string, plannedAmount: number }[] = await planRes.json()
-          const map: PlansByMonth = {}
-          for (const p of data) {
-            if (!map[p.monthKey]) map[p.monthKey] = {}
-            map[p.monthKey][p.category] = p.plannedAmount
-          }
-          setPlansByMonth(map)
-        }
-      } catch (e) {
-        console.warn('Failed to fetch spending data from backend', e)
+      if (spRes.ok) {
+        const data: SpendingEntry[] = await spRes.json()
+        setEntries(data)
       }
+      if (earnRes.ok) {
+        const data: EarningEntry[] = await earnRes.json()
+        setEarnings(data)
+      }
+      if (borRes.ok) {
+        const data: BorrowEntry[] = await borRes.json()
+        setBorrows(data)
+      }
+      if (catRes.ok) {
+        const data: { name: string }[] = await catRes.json()
+        const names = data.map(c => c.name)
+        setCategories(names.length ? names : DEFAULT_CATEGORIES)
+      }
+      if (planRes.ok) {
+        const data: { monthKey: string, category: string, plannedAmount: number }[] = await planRes.json()
+        const map: PlansByMonth = {}
+        for (const p of data) {
+          if (!map[p.monthKey]) map[p.monthKey] = {}
+          map[p.monthKey][p.category] = p.plannedAmount
+        }
+        setPlansByMonth(map)
+      }
+    } catch (e) {
+      console.warn('Failed to refetch data', e)
     }
-    loadBackend()
+  }
+
+  // Initial hydration on mount (restores months list and all datasets)
+  useEffect(() => {
+    refetchAll()
   }, [])
-
-  useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)) } catch (e) { console.warn('Failed to save spending', e) }
-  }, [entries])
-  useEffect(() => {
-    try { localStorage.setItem(STORAGE_EARN, JSON.stringify(earnings)) } catch (e) { console.warn('Failed to save earnings', e) }
-  }, [earnings])
-  useEffect(() => {
-    try { localStorage.setItem(STORAGE_PLANS, JSON.stringify(plansByMonth)) } catch (e) { console.warn('Failed to save plans', e) }
-  }, [plansByMonth])
-  useEffect(() => {
-    try { localStorage.setItem(STORAGE_BORROWS, JSON.stringify(borrows)) } catch (e) { console.warn('Failed to save borrows', e) }
-  }, [borrows])
-  useEffect(() => {
-    try { localStorage.setItem(STORAGE_CATEGORIES, JSON.stringify(categories)) } catch (e) { console.warn('Failed to save categories', e) }
-  }, [categories])
-
-
   const addEntry = (entry: Omit<SpendingEntry, 'id'>) => {
     (async () => {
       try {
@@ -209,6 +149,8 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok) throw new Error('Failed to create spending')
         const created: SpendingEntry = await res.json()
         setEntries(prev => [created, ...prev])
+        // Refetch to sync other derived views
+        refetchAll()
       } catch (e) {
         console.warn('Failed to create spending', e)
       }
@@ -220,17 +162,23 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
         const res = await fetch(`${API_BASE}/api/spending/${id}`, { method: 'DELETE' })
         if (!res.ok) throw new Error('Failed to delete spending')
         setEntries(prev => prev.filter(e => e.id !== id))
+        refetchAll()
       } catch (e) {
         console.warn('Failed to delete spending', e)
       }
     })()
   }
-   const clearAll = () => setEntries([])
+  const clearAll = () => setEntries([])
 
 
   const addEarning = (entry: Omit<EarningEntry, 'id'>) => {
     (async () => {
       try {
+        // Ensure month exists before creating earning so months list stays in sync
+        const mk = monthKeyFromISO(entry.date)
+        if (!months.includes(mk)) {
+          addMonth(mk)
+        }
         const res = await fetch(`${API_BASE}/api/earnings`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -239,6 +187,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok) throw new Error('Failed to create earning')
         const created: EarningEntry = await res.json()
         setEarnings(prev => [created, ...prev])
+        refetchAll()
       } catch (e) {
         console.warn('Failed to create earning', e)
       }
@@ -250,6 +199,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
         const res = await fetch(`${API_BASE}/api/earnings/${id}`, { method: 'DELETE' })
         if (!res.ok) throw new Error('Failed to delete earning')
         setEarnings(prev => prev.filter(e => e.id !== id))
+        refetchAll()
       } catch (e) {
         console.warn('Failed to delete earning', e)
       }
@@ -274,14 +224,17 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
             [plan.category]: plan.plannedAmount,
           }
         }))
+        // Ensure months includes this month if it was just created via plan upsert
+        setMonths(prev => (prev.includes(plan.monthKey) ? prev : [plan.monthKey, ...prev]))
+        refetchAll()
       } catch (e) {
         console.warn('Failed to upsert plan', e)
       }
     })()
   }
-   const removePlanForMonthCategory = (monthKey: string, category: string) => {
+  const removePlanForMonthCategory = (monthKey: string, category: string) => {
 
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch(`${API_BASE}/api/plans/${monthKey}/${category}`, { method: 'DELETE' })
         if (!res.ok) throw new Error('Failed to delete plan')
@@ -292,11 +245,12 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
           next[monthKey] = monthPlans
           return next
         })
+        refetchAll()
       } catch (e) {
         console.warn('Failed to delete plan', e)
       }
     })()
-   }
+  }
 
 
   const addBorrow = (entry: Omit<BorrowEntry, 'id'>) => {
@@ -310,6 +264,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok) throw new Error('Failed to create borrow')
         const created: BorrowEntry = await res.json()
         setBorrows(prev => [created, ...prev])
+        refetchAll()
       } catch (e) {
         console.warn('Failed to create borrow', e)
       }
@@ -325,6 +280,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
         })
         if (!res.ok) throw new Error('Failed to update borrow repayment')
         setBorrows(prev => prev.map(b => b.id === id ? { ...b, repaidAmount, repaidDate } : b))
+        refetchAll()
       } catch (e) {
         console.warn('Failed to update borrow repayment', e)
       }
@@ -336,6 +292,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
         const res = await fetch(`${API_BASE}/api/borrows/${id}`, { method: 'DELETE' })
         if (!res.ok) throw new Error('Failed to delete borrow')
         setBorrows(prev => prev.filter(b => b.id !== id))
+        refetchAll()
       } catch (e) {
         console.warn('Failed to delete borrow', e)
       }
@@ -347,46 +304,47 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
   const addCategory = (name: string) => {
     const trimmed = name.trim()
     if (!trimmed) return
-    ;(async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/categories`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: trimmed }),
-        })
-        if (!res.ok) throw new Error('Failed to create category')
-        setCategories(prev => prev.includes(trimmed) ? prev : [...prev, trimmed])
-      } catch (e) {
-        console.warn('Failed to create category', e)
-      }
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/categories`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: trimmed }),
+          })
+          if (!res.ok) throw new Error('Failed to create category')
+          setCategories(prev => prev.includes(trimmed) ? prev : [...prev, trimmed])
+          refetchAll()
+        } catch (e) {
+          console.warn('Failed to create category', e)
+        }
+      })()
   }
-   const removeCategory = (name: string) => {
-     if (name === 'Other') return
+  const removeCategory = (name: string) => {
+    if (name === 'Other') return
 
-
-    ;(async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/categories/${encodeURIComponent(name)}`, { method: 'DELETE' })
-        if (!res.ok) throw new Error('Failed to delete category')
-        // remove category from list
-        setCategories(prev => prev.filter(c => c !== name))
-        // reassign existing spending entries to 'Other'
-        setEntries(prev => prev.map(e => e.category === name ? { ...e, category: 'Other' } : e))
-        // remove planned amounts for this category across all months
-        setPlansByMonth(prev => {
-          const next: PlansByMonth = {}
-          for (const [mKey, planObj] of Object.entries(prev)) {
-            const { [name]: _removed, ...rest } = planObj
-            next[mKey] = rest
-          }
-          return next
-        })
-      } catch (e) {
-        console.warn('Failed to delete category', e)
-      }
-    })()
-   }
+      ; (async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/categories/${encodeURIComponent(name)}`, { method: 'DELETE' })
+          if (!res.ok) throw new Error('Failed to delete category')
+          // remove category from list
+          setCategories(prev => prev.filter(c => c !== name))
+          // reassign existing spending entries to 'Other'
+          setEntries(prev => prev.map(e => e.category === name ? { ...e, category: 'Other' } : e))
+          // remove planned amounts for this category across all months
+          setPlansByMonth(prev => {
+            const next: PlansByMonth = {}
+            for (const [mKey, planObj] of Object.entries(prev)) {
+              const { [name]: _removed, ...rest } = planObj
+              next[mKey] = rest
+            }
+            return next
+          })
+          refetchAll()
+        } catch (e) {
+          console.warn('Failed to delete category', e)
+        }
+      })()
+  }
 
   // Months API
   const addMonth = (monthKey: string) => {
@@ -398,7 +356,27 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({ monthKey })
         })
         if (!res.ok) throw new Error('Failed to create month')
+        // Update months list immediately
         setMonths(prev => (prev.includes(monthKey) ? prev : [monthKey, ...prev]))
+        // Hydrate seeded plans for this month so UI shows them without refresh
+        try {
+          const resPlans = await fetch(`${API_BASE}/api/plans?month=${encodeURIComponent(monthKey)}`)
+          if (resPlans.ok) {
+            const data: { monthKey: string, category: string, plannedAmount: number }[] = await resPlans.json()
+            setPlansByMonth(prev => {
+              const next = { ...prev }
+              const monthPlan: Record<string, number> = {}
+              for (const p of data) {
+                monthPlan[p.category] = p.plannedAmount
+              }
+              next[monthKey] = monthPlan
+              return next
+            })
+          }
+        } catch (e) {
+          console.warn('Failed to hydrate plans for created month', e)
+        }
+        refetchAll()
       } catch (e) {
         console.warn('Failed to create month', e)
       }
@@ -410,15 +388,26 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch(`${API_BASE}/api/months/${monthKey}`, { method: 'DELETE' })
         if (!res.ok && res.status !== 204) throw new Error('Failed to delete month')
+        // Update months list
         setMonths(prev => prev.filter(m => m !== monthKey))
+        // Purge local caches for the deleted month to keep UI in sync
+        setEntries(prev => prev.filter(e => monthKeyFromISO(e.date) !== monthKey))
+        setEarnings(prev => prev.filter(e => monthKeyFromISO(e.date) !== monthKey))
+        setBorrows(prev => prev.filter(b => monthKeyFromISO(b.date) !== monthKey))
+        setPlansByMonth(prev => {
+          const next = { ...prev }
+          delete next[monthKey]
+          return next
+        })
+        refetchAll()
       } catch (e) {
         console.warn('Failed to delete month', e)
       }
     })()
   }
 
-  const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0,0,0,0)
-  const endOfMonth = new Date(); endOfMonth.setMonth(endOfMonth.getMonth()+1); endOfMonth.setDate(0); endOfMonth.setHours(23,59,59,999)
+  const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0, 0, 0, 0)
+  const endOfMonth = new Date(); endOfMonth.setMonth(endOfMonth.getMonth() + 1); endOfMonth.setDate(0); endOfMonth.setHours(23, 59, 59, 999)
 
   const monthEntries = entries.filter(e => {
     const d = new Date(e.date)
@@ -435,7 +424,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
   const recentMonths = useMemo(() => {
     const sumsByMonthKey = entries.reduce((acc, e) => {
       const d = new Date(e.date)
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       acc[key] = (acc[key] || 0) + (e.amount || 0)
       return acc
     }, {} as Record<string, number>)
@@ -444,7 +433,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
     const arr: { key: string, label: string, total: number }[] = []
     for (let i = 1; i <= 6; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       const label = `${d.toLocaleString(undefined, { month: 'short' })} ${d.getFullYear()}`
       arr.push({ key, label, total: sumsByMonthKey[key] || 0 })
     }

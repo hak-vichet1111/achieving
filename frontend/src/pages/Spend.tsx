@@ -1,9 +1,12 @@
 import React, { useMemo, useState } from 'react'
 import { useSpending } from '../contexts/SpendingContext'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Wallet, ArrowRight, Plus, CalendarDays, CheckCircle, AlertTriangle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
+import ConfirmModal from '../components/ConfirmModal'
+import { Wallet, ArrowRight, Plus, CalendarDays, CheckCircle, AlertTriangle, ChevronLeft, ChevronRight, Trash2, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import ToastViewport from '../components/ToastViewport'
+import { useToast } from '../hooks/useToast'
 
 function monthLabelFromKey(key: string) {
   const [y, m] = key.split('-').map(Number)
@@ -18,6 +21,7 @@ function formatMonthKey(date: Date) {
 export default function SpendingSummary() {
   const { months, addMonth, removeMonth, totalActualForMonth, totalEarningsForMonth, totalPlannedForMonth } = useSpending()
   const { t } = useTranslation('spending')
+  const { toasts, showToast } = useToast()
 
   const monthsList = useMemo(() => {
     return [...months]
@@ -55,12 +59,14 @@ export default function SpendingSummary() {
     if (months.includes(newMonth)) {
       setStatus('error')
       setMessage('Month already exists')
+      showToast(t('toastMonthExists', { month: newMonth }), 'warning')
       return
     }
     setStatus('idle')
     addMonth(newMonth)
     setStatus('success')
     setMessage('Month added')
+    showToast(t('toastMonthCreated', { month: newMonth }), 'success')
     setTimeout(() => {
       setAdding(false)
       setStatus('idle')
@@ -205,16 +211,8 @@ export default function SpendingSummary() {
                     Add
                   </button>
                 </div>
-
-                {/* Inline feedback */}
-                {status !== 'idle' && (
-                  <div className={`flex items-center gap-2 text-sm ${status === 'success' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {status === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-                    <span>{message}</span>
-                  </div>
-                )}
-              </motion.div>
-            )}
+                </motion.div>
+              )}
           </AnimatePresence>
         </motion.div>
 
@@ -251,25 +249,6 @@ export default function SpendingSummary() {
                 </div>
               </div>
 
-              {isConfirm && (
-                <div className="mt-2 flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Delete this month?</span>
-                  <button
-                    type="button"
-                    onClick={() => { removeMonth(m.key); setConfirmDeleteKey(null) }}
-                    className="px-2 py-1 rounded-md bg-rose-600 text-white text-xs hover:bg-rose-700"
-                  >
-                    {t('delete')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDeleteKey(null)}
-                    className="px-2 py-1 rounded-md border border-border text-xs hover:bg-muted"
-                  >
-                    {t('cancel')}
-                  </button>
-                </div>
-              )}
 
               <div className="mt-3 space-y-2">
                 <div>
@@ -312,6 +291,21 @@ export default function SpendingSummary() {
           )
         })}
       </div>
-    </div>
-  )
+
+      {/* Delete Month Modal */}
+      <ConfirmModal
+        open={!!confirmDeleteKey}
+        title={t('confirmDeleteTitle')}
+        message={t('confirmDeleteMonth')}
+        confirmText={t('delete')}
+        cancelText={t('cancel')}
+        variant="destructive"
+        onConfirm={() => { if (confirmDeleteKey) { removeMonth(confirmDeleteKey); showToast(t('toastMonthDeleted', { month: confirmDeleteKey }), 'success') } setConfirmDeleteKey(null) }}
+        onCancel={() => setConfirmDeleteKey(null)}
+      />
+
+      {/* Toasts viewport */}
+      <ToastViewport toasts={toasts} />
+      </div>
+    )
 }
