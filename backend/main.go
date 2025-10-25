@@ -70,6 +70,8 @@ func migrate(database *gorm.DB) {
 	}
 	// Spend-related tables
 	MigrateSpending(database)
+	// Auth tables
+	MigrateAuth(database)
 }
 
 func setupRouter() *gin.Engine {
@@ -79,7 +81,7 @@ func setupRouter() *gin.Engine {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{allowOrigin, "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -95,6 +97,8 @@ func setupRouter() *gin.Engine {
 
 		// Spend-related endpoints
 		RegisterSpendingRoutes(api, db)
+		// Auth endpoints
+		RegisterAuthRoutes(api, db)
 	}
 
 	// Health

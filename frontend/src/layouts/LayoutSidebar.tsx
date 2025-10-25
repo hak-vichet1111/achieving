@@ -10,7 +10,7 @@ const LayoutSidebar = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const links = [
-        { label: 'Dashboard', href: '/', icon: <Home className="w-5 h-5" /> },
+        { label: 'Dashboard', href: '/dashboard', icon: <Home className="w-5 h-5" /> },
         { label: 'Goals', href: '/goals', icon: <Target className="w-5 h-5" /> },
         { label: 'Spend', href: '/spend', icon: <Wallet className="w-5 h-5" /> },
     ];
