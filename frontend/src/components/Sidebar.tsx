@@ -1,12 +1,11 @@
-import React from 'react';
-// import { useTheme } from '../hooks/useTheme';
-// replace bulky switchers with dropdown selector
-import ThemeDropdown from './ThemeSwicher';
+import React, { useEffect } from 'react';
+import ThemeSwicher from './ThemeSwicher';
 import { useTranslation } from 'react-i18next';
 import LanguageToggle from './LanguageToggle';
-import { Home, FolderOpen, Users, Calendar, FileText, BarChart3, Settings, X, Info, ChevronRight, Target, CheckSquare, Wallet } from 'lucide-react';
+import { Home, Settings, X, Info, ChevronRight, Target, Wallet } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import UserProfile from './UserProfile'
+import { useAuth } from '../contexts/AuthContext'
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -19,12 +18,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     isOpen = true,
     onClose,
     links = [
-        { label: 'document', href: '/' },
-        { label: 'projects', href: '/projects' },
-        { label: 'team', href: '/team' },
-        { label: 'calendar', href: '/calendar' },
-        { label: 'documents', href: '/documents' },
-        { label: 'reports', href: '/reports' },
+        { label: 'dashboard', href: '/dashboard' },
+        { label: 'goals', href: '/goals' },
+        { label: 'spend', href: '/spend' },
         { label: 'settings', href: '/settings' },
     ],
     showThemeSwitcher = true,
@@ -32,19 +28,32 @@ const Sidebar: React.FC<SidebarProps> = ({
     // const { theme } = useTheme();
     const { t } = useTranslation('sidebar');
     const location = useLocation();
+    const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080'
+    const { user, token, updateUser, logout } = useAuth()
+
+    useEffect(() => {
+        if (token) {
+            (async () => {
+                try {
+                    const headers: Record<string, string> = { 'Authorization': `Bearer ${token}` }
+                    const res = await fetch(`${API_BASE}/api/auth/me`, { headers })
+                    const text = await res.text(); let data: any = null; try { data = text ? JSON.parse(text) : null } catch { }
+                    if (res.ok && data && data.user) {
+                        updateUser(data.user)
+                    } else if (res.status === 401) {
+                        logout()
+                    }
+                } catch { }
+            })()
+        }
+    }, [token])
 
     const defaultIcons = {
-        document: <Home className="w-5 h-5" />,
         dashboard: <Home className="w-5 h-5" />,
-        projects: <FolderOpen className="w-5 h-5" />,
         goals: <Target className="w-5 h-5" />,
-        tasks: <CheckSquare className="w-5 h-5" />,
         spend: <Wallet className="w-5 h-5" />,
-        team: <Users className="w-5 h-5" />,
-        calendar: <Calendar className="w-5 h-5" />,
-        documents: <FileText className="w-5 h-5" />,
-        reports: <BarChart3 className="w-5 h-5" />,
         settings: <Settings className="w-5 h-5" />,
+
     } as Record<string, React.ReactNode>;
 
     const getIcon = (label: string) => {
@@ -62,7 +71,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 />
             )}
             <aside
-                className={`fixed inset-y-0 left-0 z-40 w-64 sm:w-72 bg-card/95 backdrop-blur-sm border-r border-border shadow-lg transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0 ' : '-translate-x-full'} lg:static lg:sticky lg:top-0 lg:translate-x-0 lg:transform-none`}
+                className={`fixed inset-y-0 left-0 z-40 w-64 sm:w-72 bg-card/95 backdrop-blur-sm border-r border-border shadow-lg transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0 ' : '-translate-x-full'} lg:sticky lg:top-0 lg:translate-x-0 lg:transform-none`}
             >
                 <div className="h-full lg:h-screen flex flex-col overflow-y-auto">
                     {/* Header */}
@@ -87,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </div>
 
                     {/* User profile */}
-                    <UserProfile name="Guest" email="guest@example.com" />
+                    <UserProfile name={user?.name || 'User'} email={user?.email || 'you@example.com'} />
 
                     {/* Navigation */}
                     <nav className="flex-1 overflow-y-auto py-6 px-4">
@@ -103,8 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                             to={link.href}
                                             onClick={onClose}
                                             className={({ isActive }) =>
-                                                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
-                                                    isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
+                                                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted'
                                                 }`
                                             }
                                         >
@@ -126,7 +134,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">{t('theme')}</p>
                             <div className="flex items-center gap-2">
                                 <div className="flex-1">
-                                    <ThemeDropdown />
+                                    <ThemeSwicher />
                                 </div>
                                 <LanguageToggle />
                             </div>

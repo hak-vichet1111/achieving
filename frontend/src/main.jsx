@@ -9,15 +9,18 @@ import "./i18n.ts";
 import { ThemeProvider } from "./contexts/ThemeProvider.jsx";
 import { GoalsProvider } from "./contexts/GoalsContext.tsx";
 import { SpendingProvider } from "./contexts/SpendingContext.tsx";
+import { AuthProvider } from "./contexts/AuthContext.tsx";
 
 createRoot(document.getElementById("root")).render(
   // <StrictMode>
-  <GoalsProvider>
-    <SpendingProvider>
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>
-    </SpendingProvider>
-  </GoalsProvider>
+  <AuthProvider>
+    <GoalsProvider>
+      <SpendingProvider>
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
+      </SpendingProvider>
+    </GoalsProvider>
+  </AuthProvider>
   // </StrictMode>,
 );

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { useAuth } from './AuthContext'
 
 export type SpendingEntry = {
   id: string
@@ -66,13 +67,21 @@ type SpendingContextType = {
 }
 
 const SpendingContext = createContext<SpendingContextType | undefined>(undefined)
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080'
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8081'
 const STORAGE_KEY = 'achieving_spending_entries'
 const STORAGE_EARN = 'achieving_spending_earnings'
 const STORAGE_PLANS = 'achieving_spending_plans'
 const STORAGE_BORROWS = 'achieving_spending_borrows'
 const STORAGE_CATEGORIES = 'achieving_spending_categories'
 const DEFAULT_CATEGORIES = ['Food', 'Transport', 'Housing', 'Utilities', 'Entertainment', 'Other']
+// Add a centralized auth headers helper
+const authHeaders = (contentType?: string) => {
+  const headers: Record<string, string> = {}
+  if (contentType) headers['Content-Type'] = contentType
+  const tok = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+  if (tok) headers['Authorization'] = `Bearer ${tok}`
+  return headers
+}
 
 function monthKeyFromISO(dateISO: string) {
   const d = new Date(dateISO)
@@ -80,6 +89,7 @@ function monthKeyFromISO(dateISO: string) {
 }
 
 export function SpendingProvider({ children }: { children: React.ReactNode }) {
+  const { authVersion, isAuthenticated } = useAuth()
   const [entries, setEntries] = useState<SpendingEntry[]>([])
   const [earnings, setEarnings] = useState<EarningEntry[]>([])
   const [plansByMonth, setPlansByMonth] = useState<PlansByMonth>({})
@@ -91,12 +101,12 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
   const refetchAll = async () => {
     try {
       const [monthsRes, spRes, earnRes, borRes, catRes, planRes] = await Promise.all([
-        fetch(`${API_BASE}/api/months`),
-        fetch(`${API_BASE}/api/spending`),
-        fetch(`${API_BASE}/api/earnings`),
-        fetch(`${API_BASE}/api/borrows`),
-        fetch(`${API_BASE}/api/categories`),
-        fetch(`${API_BASE}/api/plans`),
+        fetch(`${API_BASE}/api/months`, { headers: authHeaders() }),
+        fetch(`${API_BASE}/api/spending`, { headers: authHeaders() }),
+        fetch(`${API_BASE}/api/earnings`, { headers: authHeaders() }),
+        fetch(`${API_BASE}/api/borrows`, { headers: authHeaders() }),
+        fetch(`${API_BASE}/api/categories`, { headers: authHeaders() }),
+        fetch(`${API_BASE}/api/plans`, { headers: authHeaders() }),
       ])
       if (monthsRes.ok) {
         const monthsData = await monthsRes.json()
@@ -134,16 +144,26 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Initial hydration on mount (restores months list and all datasets)
+  // Initial hydration on mount and when auth changes (restores months list and all datasets)
   useEffect(() => {
-    refetchAll()
-  }, [])
+    if (isAuthenticated) {
+      refetchAll()
+    } else {
+      // Clear data when user logs out
+      setEntries([])
+      setEarnings([])
+      setBorrows([])
+      setPlansByMonth({})
+      setCategories(DEFAULT_CATEGORIES)
+      setMonths([])
+    }
+  }, [authVersion, isAuthenticated])
   const addEntry = (entry: Omit<SpendingEntry, 'id'>) => {
     (async () => {
       try {
         const res = await fetch(`${API_BASE}/api/spending`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders('application/json'),
           body: JSON.stringify(entry),
         })
         if (!res.ok) throw new Error('Failed to create spending')
@@ -159,7 +179,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
   const removeEntry = (id: string) => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/spending/${id}`, { method: 'DELETE' })
+        const res = await fetch(`${API_BASE}/api/spending/${id}`, { method: 'DELETE', headers: authHeaders() })
         if (!res.ok) throw new Error('Failed to delete spending')
         setEntries(prev => prev.filter(e => e.id !== id))
         refetchAll()
@@ -181,7 +201,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
         }
         const res = await fetch(`${API_BASE}/api/earnings`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders('application/json'),
           body: JSON.stringify(entry),
         })
         if (!res.ok) throw new Error('Failed to create earning')
@@ -196,7 +216,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
   const removeEarning = (id: string) => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/earnings/${id}`, { method: 'DELETE' })
+        const res = await fetch(`${API_BASE}/api/earnings/${id}`, { method: 'DELETE', headers: authHeaders() })
         if (!res.ok) throw new Error('Failed to delete earning')
         setEarnings(prev => prev.filter(e => e.id !== id))
         refetchAll()
@@ -212,7 +232,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch(`${API_BASE}/api/plans`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders('application/json'),
           body: JSON.stringify({ monthKey, category, plannedAmount }),
         })
         if (!res.ok) throw new Error('Failed to upsert plan')
@@ -236,7 +256,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
 
     ; (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/plans/${monthKey}/${category}`, { method: 'DELETE' })
+        const res = await fetch(`${API_BASE}/api/plans/${monthKey}/${category}`, { method: 'DELETE', headers: authHeaders() })
         if (!res.ok) throw new Error('Failed to delete plan')
         setPlansByMonth(prev => {
           const next = { ...prev }
@@ -258,7 +278,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch(`${API_BASE}/api/borrows`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders('application/json'),
           body: JSON.stringify(entry),
         })
         if (!res.ok) throw new Error('Failed to create borrow')
@@ -275,7 +295,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch(`${API_BASE}/api/borrows/${id}/repayment`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders('application/json'),
           body: JSON.stringify({ repaidAmount, repaidDate }),
         })
         if (!res.ok) throw new Error('Failed to update borrow repayment')
@@ -289,7 +309,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
   const removeBorrow = (id: string) => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/borrows/${id}`, { method: 'DELETE' })
+        const res = await fetch(`${API_BASE}/api/borrows/${id}`, { method: 'DELETE', headers: authHeaders() })
         if (!res.ok) throw new Error('Failed to delete borrow')
         setBorrows(prev => prev.filter(b => b.id !== id))
         refetchAll()
@@ -308,7 +328,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
         try {
           const res = await fetch(`${API_BASE}/api/categories`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders('application/json'),
             body: JSON.stringify({ name: trimmed }),
           })
           if (!res.ok) throw new Error('Failed to create category')
@@ -324,7 +344,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
 
       ; (async () => {
         try {
-          const res = await fetch(`${API_BASE}/api/categories/${encodeURIComponent(name)}`, { method: 'DELETE' })
+          const res = await fetch(`${API_BASE}/api/categories/${encodeURIComponent(name)}`, { method: 'DELETE', headers: authHeaders() })
           if (!res.ok) throw new Error('Failed to delete category')
           // remove category from list
           setCategories(prev => prev.filter(c => c !== name))
@@ -352,7 +372,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch(`${API_BASE}/api/months`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders('application/json'),
           body: JSON.stringify({ monthKey })
         })
         if (!res.ok) throw new Error('Failed to create month')
@@ -360,7 +380,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
         setMonths(prev => (prev.includes(monthKey) ? prev : [monthKey, ...prev]))
         // Hydrate seeded plans for this month so UI shows them without refresh
         try {
-          const resPlans = await fetch(`${API_BASE}/api/plans?month=${encodeURIComponent(monthKey)}`)
+          const resPlans = await fetch(`${API_BASE}/api/plans?month=${encodeURIComponent(monthKey)}`, { headers: authHeaders() })
           if (resPlans.ok) {
             const data: { monthKey: string, category: string, plannedAmount: number }[] = await resPlans.json()
             setPlansByMonth(prev => {
@@ -386,7 +406,7 @@ export function SpendingProvider({ children }: { children: React.ReactNode }) {
   const removeMonth = (monthKey: string) => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/months/${monthKey}`, { method: 'DELETE' })
+        const res = await fetch(`${API_BASE}/api/months/${monthKey}`, { method: 'DELETE', headers: authHeaders() })
         if (!res.ok && res.status !== 204) throw new Error('Failed to delete month')
         // Update months list
         setMonths(prev => prev.filter(m => m !== monthKey))

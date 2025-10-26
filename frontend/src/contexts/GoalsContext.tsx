@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
 import type { Goal, GoalStatus } from '../types/goal'
+import { useAuth } from './AuthContext'
 
 interface GoalsState {
   goals: Goal[]
@@ -83,15 +84,24 @@ interface GoalsContextType {
 
 const GoalsContext = createContext<GoalsContextType | undefined>(undefined)
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080'
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8081'
+// Add a centralized auth headers helper
+const authHeaders = (contentType?: string) => {
+  const headers: Record<string, string> = {}
+  if (contentType) headers['Content-Type'] = contentType
+  const tok = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+  if (tok) headers['Authorization'] = `Bearer ${tok}`
+  return headers
+}
 
 export function GoalsProvider({ children }: { children: React.ReactNode }) {
+  const { authVersion, isAuthenticated } = useAuth()
   const [state, dispatch] = useReducer(goalsReducer, initialState)
 
   // Centralized refetch for goals
   const reloadGoals = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/goals`)
+      const res = await fetch(`${API_BASE}/api/goals`, { headers: authHeaders() })
       if (!res.ok) return
       const data: Goal[] = await res.json()
       dispatch({ type: 'HYDRATE', payload: data })
@@ -100,20 +110,25 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Hydrate from backend
+  // Hydrate from backend on mount and when auth changes
   useEffect(() => {
     const load = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/goals`)
-        if (!res.ok) throw new Error('Failed to load goals')
-        const data: Goal[] = await res.json()
-        dispatch({ type: 'HYDRATE', payload: data })
-      } catch (e) {
-        console.warn('Failed to fetch goals from backend', e)
+      if (isAuthenticated) {
+        try {
+          const res = await fetch(`${API_BASE}/api/goals`, { headers: authHeaders() })
+          if (!res.ok) throw new Error('Failed to load goals')
+          const data: Goal[] = await res.json()
+          dispatch({ type: 'HYDRATE', payload: data })
+        } catch (e) {
+          console.warn('Failed to fetch goals from backend', e)
+        }
+      } else {
+        // Clear goals when user logs out
+        dispatch({ type: 'HYDRATE', payload: [] })
       }
     }
     load()
-  }, [])
+  }, [authVersion, isAuthenticated])
 
   const value = useMemo<GoalsContextType>(() => ({
     goals: state.goals,
@@ -121,7 +136,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch(`${API_BASE}/api/goals`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders('application/json'),
           body: JSON.stringify({
             title: payload.title,
             description: payload.description,
@@ -148,7 +163,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch(`${API_BASE}/api/goals/${id}/status`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders('application/json'),
           body: JSON.stringify({ status }),
         })
         if (!res.ok) throw new Error('Failed to update status')
@@ -160,7 +175,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
     },
     removeGoal: async (id) => {
       try {
-        const res = await fetch(`${API_BASE}/api/goals/${id}`, { method: 'DELETE' })
+        const res = await fetch(`${API_BASE}/api/goals/${id}`, { method: 'DELETE', headers: authHeaders() })
         if (!res.ok) throw new Error('Failed to delete goal')
         dispatch({ type: 'REMOVE_GOAL', payload: { id } })
         reloadGoals()
@@ -172,7 +187,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch(`${API_BASE}/api/goals/${id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders('application/json'),
           body: JSON.stringify({ currentAmount }),
         })
         if (!res.ok) throw new Error('Failed to update amount')
@@ -187,7 +202,7 @@ export function GoalsProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch(`${API_BASE}/api/goals/${id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders('application/json'),
           body: JSON.stringify(patch),
         })
         if (!res.ok) throw new Error('Failed to update goal')

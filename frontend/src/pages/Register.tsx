@@ -1,40 +1,50 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 const Register: React.FC = () => {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Use configured API base, fallback to 8080
+  const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080'
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password })
       })
-      const data = await res.json()
+      const regText = await res.text()
+      let regData: any = null
+      try { regData = regText ? JSON.parse(regText) : null } catch {}
       if (!res.ok) {
-        throw new Error(data?.error || 'Registration failed')
+        const msg = (regData && regData.error) ? regData.error : `Registration failed (${res.status})`
+        throw new Error(msg)
       }
       // Auto-login after registration
-      const loginRes = await fetch('/api/auth/login', {
+      const loginRes = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       })
-      const loginData = await loginRes.json()
+      const loginText = await loginRes.text()
+      let loginData: any = null
+      try { loginData = loginText ? JSON.parse(loginText) : null } catch {}
       if (!loginRes.ok) {
-        throw new Error(loginData?.error || 'Login failed')
+        const msg = (loginData && loginData.error) ? loginData.error : `Login failed (${loginRes.status})`
+        throw new Error(msg)
       }
-      localStorage.setItem('auth_token', loginData.token)
-      localStorage.setItem('auth_user', JSON.stringify(loginData.user))
+      login(loginData.token, loginData.user)
       navigate('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Registration failed')

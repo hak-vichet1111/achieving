@@ -1,29 +1,38 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Use configured API base, fallback to 8080
+  const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080'
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       })
-      const data = await res.json()
+      const text = await res.text()
+      let data: any = null
+      try {
+        data = text ? JSON.parse(text) : null
+      } catch {}
       if (!res.ok) {
-        throw new Error(data?.error || 'Login failed')
+        const msg = (data && data.error) ? data.error : `Login failed (${res.status})`
+        throw new Error(msg)
       }
-      localStorage.setItem('auth_token', data.token)
-      localStorage.setItem('auth_user', JSON.stringify(data.user))
+      login(data.token, data.user)
       navigate('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Login failed')

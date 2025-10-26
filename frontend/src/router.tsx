@@ -8,6 +8,8 @@ import Spend from './pages/Spend'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Settings from './pages/Settings'
+import RequireAuth from './components/RequireAuth'
 
 const router = createBrowserRouter([
   // Public routes
@@ -26,7 +28,11 @@ const router = createBrowserRouter([
   // App routes under sidebar layout
   {
     path: '/',
-    element: <LayoutSidebar />,
+    element: (
+      <RequireAuth>
+        <LayoutSidebar />
+      </RequireAuth>
+    ),
     children: [
       {
         path: '/dashboard',
@@ -47,6 +53,10 @@ const router = createBrowserRouter([
       {
         path: '/spend/:monthId',
         element: <SpendDetails />, // Detailed spending for a specific month
+      },
+      {
+        path: '/settings',
+        element: <Settings />,
       }
     ]
   },
