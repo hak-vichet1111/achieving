@@ -1,0 +1,9 @@
+# Ignore local environment and VCS
+.git
+.gitignore
+.env
+
+# Ignore compiled artifacts and local outputs
+achieving-backend/
+*.log
+db/*.sql

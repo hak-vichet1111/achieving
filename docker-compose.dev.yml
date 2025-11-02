@@ -1,0 +1,63 @@
+services:
+  db:
+    image: mysql:8.0
+    env_file:
+      - ./.env
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-achieving_db}
+      MYSQL_USER: ${MYSQL_USER:-achieving}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-achieving}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./backend/db/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+      - ./backend/db/achieving_2025-10-30.sql:/docker-entrypoint-initdb.d/002_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    image: golang:1.23
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    # Use explicit Go binary path because /usr/local/go/bin isn't in PATH in this image
+    command: sh -c "/usr/local/go/bin/go mod download && /usr/local/go/bin/go build -o achieving-dev . && ./achieving-dev"
+    env_file:
+      - backend/.env
+      - ./.env
+    environment:
+      PORT: ${PORT:-8080}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-achieving}
+      DB_PASS: ${DB_PASS:-achieving}
+      DB_NAME: ${DB_NAME:-achieving_db}
+      ALLOW_ORIGIN: ${ALLOW_ORIGIN:-http://localhost:5173}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    env_file:
+      - frontend/.env
+      - ./.env
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+
+volumes:
+  frontend_node_modules:

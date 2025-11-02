@@ -1,0 +1,14 @@
+# Ignore local environment and VCS
+.git
+.gitignore
+.env
+.env.*
+
+# Dependencies and caches
+node_modules/
+.cache/
+.vite/
+
+# Logs and artifacts
+*.log
+dist/

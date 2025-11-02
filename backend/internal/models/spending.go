@@ -69,21 +69,14 @@ type Month struct {
 }
 
 func MigrateSpending(db *gorm.DB) {
-    if os.Getenv("DISABLE_LEGACY_MIGRATIONS") == "true" {
-        log.Println("AutoMigrate disabled; skipping spending-related table migrations")
-    } else {
-        _ = db.AutoMigrate(&SpendingEntry{}, &EarningEntry{}, &BorrowEntry{}, &Category{}, &Plan{}, &Month{})
-    }
+    // Always ensure core tables exist using AutoMigrate
+    _ = db.AutoMigrate(&SpendingEntry{}, &EarningEntry{}, &BorrowEntry{}, &Category{}, &Plan{}, &Month{})
     // Backfill month_key for existing records
     db.Exec("UPDATE spending_entries SET month_key = DATE_FORMAT(date, '%Y-%m') WHERE month_key IS NULL OR month_key = ''")
     db.Exec("UPDATE earning_entries SET month_key = DATE_FORMAT(date, '%Y-%m') WHERE month_key IS NULL OR month_key = ''")
     db.Exec("UPDATE borrow_entries SET month_key = DATE_FORMAT(date, '%Y-%m') WHERE month_key IS NULL OR month_key = ''")
     // Ensure FK constraints exist
-    // When legacy migrations are disabled, skip creating constraints to avoid
-    // accidental reversed FK attempts against parent tables (months).
-    if os.Getenv("DISABLE_LEGACY_MIGRATIONS") == "true" {
-        log.Println("FK creation disabled; skipping spending-related User/Month constraints")
-    } else {
+    {
         if !db.Migrator().HasConstraint(&SpendingEntry{}, "User") {
             _ = db.Migrator().CreateConstraint(&SpendingEntry{}, "User")
         }
@@ -105,6 +98,20 @@ func MigrateSpending(db *gorm.DB) {
         if !db.Migrator().HasConstraint(&Plan{}, "Month") {
             _ = db.Migrator().CreateConstraint(&Plan{}, "Month")
         }
+    }
+
+    // Safety: drop any reversed foreign keys mistakenly attached to `months`
+    // This prevents failures on creating a month before entries exist.
+    // Only executes when legacy migrations are enabled explicitly.
+    if os.Getenv("DISABLE_LEGACY_MIGRATIONS") != "true" {
+        // Check and drop months -> earning/borrow/spending FKs if present
+        var cnt int64
+        db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'months' AND CONSTRAINT_NAME = 'fk_earning_entries_month'").Scan(&cnt)
+        if cnt > 0 { db.Exec("ALTER TABLE `months` DROP FOREIGN KEY `fk_earning_entries_month`") }
+        db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'months' AND CONSTRAINT_NAME = 'fk_borrow_entries_month'").Scan(&cnt)
+        if cnt > 0 { db.Exec("ALTER TABLE `months` DROP FOREIGN KEY `fk_borrow_entries_month`") }
+        db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'months' AND CONSTRAINT_NAME = 'fk_spending_entries_month'").Scan(&cnt)
+        if cnt > 0 { db.Exec("ALTER TABLE `months` DROP FOREIGN KEY `fk_spending_entries_month`") }
     }
 
     // --- Legacy schema alignment for production upgrades ---
