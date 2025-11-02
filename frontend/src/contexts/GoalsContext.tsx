@@ -84,7 +84,7 @@ interface GoalsContextType {
 
 const GoalsContext = createContext<GoalsContextType | undefined>(undefined)
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8081'
+const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? ''
 // Add a centralized auth headers helper
 const authHeaders = (contentType?: string) => {
   const headers: Record<string, string> = {}

@@ -10,8 +10,8 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Use configured API base, fallback to 8080
-  const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080'
+  // Use configured API base; default to same-origin (relative)
+  const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? ''
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

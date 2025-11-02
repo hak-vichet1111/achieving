@@ -1,0 +1,10 @@
+# Ignore environment files anywhere in the repo
+**/.env
+
+# Ignore backend build/output directory
+backend/achieving-backend/
+
+# Optional: macOS and editor cruft (safe to keep ignored)
+.DS_Store
+.idea/
+.vscode/

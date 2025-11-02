@@ -1,8 +1,10 @@
 package models
 
 import (
-	"time"
-	"gorm.io/gorm"
+    "log"
+    "os"
+    "time"
+    "gorm.io/gorm"
 )
 
 type SpendingEntry struct {
@@ -67,89 +69,104 @@ type Month struct {
 }
 
 func MigrateSpending(db *gorm.DB) {
-	_ = db.AutoMigrate(&SpendingEntry{}, &EarningEntry{}, &BorrowEntry{}, &Category{}, &Plan{}, &Month{})
-	// Backfill month_key for existing records
-	db.Exec("UPDATE spending_entries SET month_key = DATE_FORMAT(date, '%Y-%m') WHERE month_key IS NULL OR month_key = ''")
-	db.Exec("UPDATE earning_entries SET month_key = DATE_FORMAT(date, '%Y-%m') WHERE month_key IS NULL OR month_key = ''")
-	db.Exec("UPDATE borrow_entries SET month_key = DATE_FORMAT(date, '%Y-%m') WHERE month_key IS NULL OR month_key = ''")
-	// Ensure FK constraints exist (guarded)
-	if !db.Migrator().HasConstraint(&SpendingEntry{}, "User") {
-		_ = db.Migrator().CreateConstraint(&SpendingEntry{}, "User")
-	}
-	if !db.Migrator().HasConstraint(&EarningEntry{}, "User") {
-		_ = db.Migrator().CreateConstraint(&EarningEntry{}, "User")
-	}
-	if !db.Migrator().HasConstraint(&BorrowEntry{}, "User") {
-		_ = db.Migrator().CreateConstraint(&BorrowEntry{}, "User")
-	}
-	if !db.Migrator().HasConstraint(&SpendingEntry{}, "Month") {
-		_ = db.Migrator().CreateConstraint(&SpendingEntry{}, "Month")
-	}
-	if !db.Migrator().HasConstraint(&EarningEntry{}, "Month") {
-		_ = db.Migrator().CreateConstraint(&EarningEntry{}, "Month")
-	}
-	if !db.Migrator().HasConstraint(&BorrowEntry{}, "Month") {
-		_ = db.Migrator().CreateConstraint(&BorrowEntry{}, "Month")
-	}
-	if !db.Migrator().HasConstraint(&Plan{}, "Month") {
-		_ = db.Migrator().CreateConstraint(&Plan{}, "Month")
-	}
+    if os.Getenv("DISABLE_LEGACY_MIGRATIONS") == "true" {
+        log.Println("AutoMigrate disabled; skipping spending-related table migrations")
+    } else {
+        _ = db.AutoMigrate(&SpendingEntry{}, &EarningEntry{}, &BorrowEntry{}, &Category{}, &Plan{}, &Month{})
+    }
+    // Backfill month_key for existing records
+    db.Exec("UPDATE spending_entries SET month_key = DATE_FORMAT(date, '%Y-%m') WHERE month_key IS NULL OR month_key = ''")
+    db.Exec("UPDATE earning_entries SET month_key = DATE_FORMAT(date, '%Y-%m') WHERE month_key IS NULL OR month_key = ''")
+    db.Exec("UPDATE borrow_entries SET month_key = DATE_FORMAT(date, '%Y-%m') WHERE month_key IS NULL OR month_key = ''")
+    // Ensure FK constraints exist
+    // When legacy migrations are disabled, skip creating constraints to avoid
+    // accidental reversed FK attempts against parent tables (months).
+    if os.Getenv("DISABLE_LEGACY_MIGRATIONS") == "true" {
+        log.Println("FK creation disabled; skipping spending-related User/Month constraints")
+    } else {
+        if !db.Migrator().HasConstraint(&SpendingEntry{}, "User") {
+            _ = db.Migrator().CreateConstraint(&SpendingEntry{}, "User")
+        }
+        if !db.Migrator().HasConstraint(&EarningEntry{}, "User") {
+            _ = db.Migrator().CreateConstraint(&EarningEntry{}, "User")
+        }
+        if !db.Migrator().HasConstraint(&BorrowEntry{}, "User") {
+            _ = db.Migrator().CreateConstraint(&BorrowEntry{}, "User")
+        }
+        if !db.Migrator().HasConstraint(&SpendingEntry{}, "Month") {
+            _ = db.Migrator().CreateConstraint(&SpendingEntry{}, "Month")
+        }
+        if !db.Migrator().HasConstraint(&EarningEntry{}, "Month") {
+            _ = db.Migrator().CreateConstraint(&EarningEntry{}, "Month")
+        }
+        if !db.Migrator().HasConstraint(&BorrowEntry{}, "Month") {
+            _ = db.Migrator().CreateConstraint(&BorrowEntry{}, "Month")
+        }
+        if !db.Migrator().HasConstraint(&Plan{}, "Month") {
+            _ = db.Migrator().CreateConstraint(&Plan{}, "Month")
+        }
+    }
 
-	// --- Legacy schema alignment for production upgrades ---
-	// Categories: ensure user_id column and composite primary key (user_id, name)
-	var cnt int64
-	db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'user_id'", "categories").Scan(&cnt)
-	if cnt == 0 {
-		db.Exec("ALTER TABLE `categories` ADD COLUMN `user_id` VARCHAR(36) NOT NULL AFTER `name`")
-	}
-	db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = 'PRIMARY' AND COLUMN_NAME = 'name'", "categories").Scan(&cnt)
-	if cnt > 0 {
-		// legacy PK on name only -> replace with (user_id, name)
-		db.Exec("ALTER TABLE `categories` DROP PRIMARY KEY")
-		db.Exec("ALTER TABLE `categories` ADD PRIMARY KEY (`user_id`, `name`)")
-	}
+    // --- Legacy schema alignment for production upgrades ---
+    // Guarded by env to avoid ALTER TABLE on live DBs with FKs
+    if os.Getenv("DISABLE_LEGACY_MIGRATIONS") == "true" {
+        log.Println("Legacy migrations disabled; skipping spending legacy schema alignment")
+    } else {
+        // Categories: ensure user_id column and composite primary key (user_id, name)
+        var cnt int64
+        db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'user_id'", "categories").Scan(&cnt)
+        if cnt == 0 {
+            db.Exec("ALTER TABLE `categories` ADD COLUMN `user_id` VARCHAR(36) NOT NULL AFTER `name`")
+        }
+        db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = 'PRIMARY' AND COLUMN_NAME = 'name'", "categories").Scan(&cnt)
+        if cnt > 0 {
+            // legacy PK on name only -> replace with (user_id, name)
+            db.Exec("ALTER TABLE `categories` DROP PRIMARY KEY")
+            db.Exec("ALTER TABLE `categories` ADD PRIMARY KEY (`user_id`, `name`)")
+        }
 
-	// Plans: ensure user_id column, field sizes, and unique index
-	db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'user_id'", "plans").Scan(&cnt)
-	if cnt == 0 {
-		db.Exec("ALTER TABLE `plans` ADD COLUMN `user_id` VARCHAR(36) NOT NULL AFTER `id`")
-	}
-	// enforce column sizes
-	db.Exec("ALTER TABLE `plans` MODIFY `month_key` VARCHAR(7) NOT NULL")
-	db.Exec("ALTER TABLE `plans` MODIFY `category` VARCHAR(64) NOT NULL")
-	// ensure unique index exists
-	var idxCnt int64
-	db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = 'idx_user_month_category'", "plans").Scan(&idxCnt)
-	if idxCnt == 0 {
-		db.Exec("CREATE UNIQUE INDEX `idx_user_month_category` ON `plans` (`user_id`, `month_key`, `category`)")
-	}
+        // Plans: ensure user_id column, field sizes, and unique index
+        db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'user_id'", "plans").Scan(&cnt)
+        if cnt == 0 {
+            db.Exec("ALTER TABLE `plans` ADD COLUMN `user_id` VARCHAR(36) NOT NULL AFTER `id`")
+        }
+        // enforce column sizes
+        db.Exec("ALTER TABLE `plans` MODIFY `month_key` VARCHAR(7) NOT NULL")
+        db.Exec("ALTER TABLE `plans` MODIFY `category` VARCHAR(64) NOT NULL")
+        // ensure unique index exists
+        var idxCnt int64
+        db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = 'idx_user_month_category'", "plans").Scan(&idxCnt)
+        if idxCnt == 0 {
+            db.Exec("CREATE UNIQUE INDEX `idx_user_month_category` ON `plans` (`user_id`, `month_key`, `category`)")
+        }
 
-	// Months: ensure user_id column, sizes, and composite primary key
-	db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'months' AND COLUMN_NAME = 'user_id'").Scan(&cnt)
-	if cnt == 0 {
-		db.Exec("ALTER TABLE `months` ADD COLUMN `user_id` VARCHAR(36) NOT NULL AFTER `month_key`")
-	}
-	// enforce month_key size
-	db.Exec("ALTER TABLE `months` MODIFY `month_key` VARCHAR(7) NOT NULL")
-	// ensure composite PK includes both columns
-	var pkColsCnt int64
-	db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'months' AND CONSTRAINT_NAME = 'PRIMARY' AND COLUMN_NAME IN ('user_id','month_key')").Scan(&pkColsCnt)
-	if pkColsCnt < 2 {
-		db.Exec("ALTER TABLE `months` DROP PRIMARY KEY")
-		db.Exec("ALTER TABLE `months` ADD PRIMARY KEY (`user_id`, `month_key`)")
-	}
+        // Months: ensure user_id column, sizes, and composite primary key
+        db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'months' AND COLUMN_NAME = 'user_id'").Scan(&cnt)
+        if cnt == 0 {
+            db.Exec("ALTER TABLE `months` ADD COLUMN `user_id` VARCHAR(36) NOT NULL AFTER `month_key`")
+        }
+        // enforce month_key size
+        db.Exec("ALTER TABLE `months` MODIFY `month_key` VARCHAR(7) NOT NULL")
+        // ensure composite PK includes both columns
+        var pkColsCnt int64
+        db.Raw("SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'months' AND CONSTRAINT_NAME = 'PRIMARY' AND COLUMN_NAME IN ('user_id','month_key')").Scan(&pkColsCnt)
+        if pkColsCnt < 2 {
+            db.Exec("ALTER TABLE `months` DROP PRIMARY KEY")
+            db.Exec("ALTER TABLE `months` ADD PRIMARY KEY (`user_id`, `month_key`)")
+        }
 
-	// Entries: enforce sizes for legacy schemas
-	db.Exec("ALTER TABLE `spending_entries` MODIFY `id` VARCHAR(36) NOT NULL")
-	db.Exec("ALTER TABLE `spending_entries` MODIFY `user_id` VARCHAR(36) NOT NULL")
-	db.Exec("ALTER TABLE `spending_entries` MODIFY `month_key` VARCHAR(7) NOT NULL")
-	db.Exec("ALTER TABLE `spending_entries` MODIFY `category` VARCHAR(64) NOT NULL")
+        // Entries: enforce sizes for legacy schemas
+        db.Exec("ALTER TABLE `spending_entries` MODIFY `id` VARCHAR(36) NOT NULL")
+        db.Exec("ALTER TABLE `spending_entries` MODIFY `user_id` VARCHAR(36) NOT NULL")
+        db.Exec("ALTER TABLE `spending_entries` MODIFY `month_key` VARCHAR(7) NOT NULL")
+        db.Exec("ALTER TABLE `spending_entries` MODIFY `category` VARCHAR(64) NOT NULL")
 
-	db.Exec("ALTER TABLE `earning_entries` MODIFY `id` VARCHAR(36) NOT NULL")
-	db.Exec("ALTER TABLE `earning_entries` MODIFY `user_id` VARCHAR(36) NOT NULL")
-	db.Exec("ALTER TABLE `earning_entries` MODIFY `month_key` VARCHAR(7) NOT NULL")
+        db.Exec("ALTER TABLE `earning_entries` MODIFY `id` VARCHAR(36) NOT NULL")
+        db.Exec("ALTER TABLE `earning_entries` MODIFY `user_id` VARCHAR(36) NOT NULL")
+        db.Exec("ALTER TABLE `earning_entries` MODIFY `month_key` VARCHAR(7) NOT NULL")
 
-	db.Exec("ALTER TABLE `borrow_entries` MODIFY `id` VARCHAR(36) NOT NULL")
-	db.Exec("ALTER TABLE `borrow_entries` MODIFY `user_id` VARCHAR(36) NOT NULL")
-	db.Exec("ALTER TABLE `borrow_entries` MODIFY `month_key` VARCHAR(7) NOT NULL")
+        db.Exec("ALTER TABLE `borrow_entries` MODIFY `id` VARCHAR(36) NOT NULL")
+        db.Exec("ALTER TABLE `borrow_entries` MODIFY `user_id` VARCHAR(36) NOT NULL")
+        db.Exec("ALTER TABLE `borrow_entries` MODIFY `month_key` VARCHAR(7) NOT NULL")
+    }
 }

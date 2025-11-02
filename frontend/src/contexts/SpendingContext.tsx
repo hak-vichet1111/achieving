@@ -67,7 +67,7 @@ type SpendingContextType = {
 }
 
 const SpendingContext = createContext<SpendingContextType | undefined>(undefined)
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8081'
+const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? ''
 const STORAGE_KEY = 'achieving_spending_entries'
 const STORAGE_EARN = 'achieving_spending_earnings'
 const STORAGE_PLANS = 'achieving_spending_plans'

@@ -28,7 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     // const { theme } = useTheme();
     const { t } = useTranslation('sidebar');
     const location = useLocation();
-    const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080'
+    const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? ''
     const { user, token, updateUser, logout } = useAuth()
 
     useEffect(() => {

@@ -2,6 +2,7 @@
 -- Engine: InnoDB, Charset: utf8mb4
 
 SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS=0;
 
 -- Users
 CREATE TABLE IF NOT EXISTS `users` (
@@ -67,6 +68,7 @@ CREATE TABLE IF NOT EXISTS `spending_entries` (
   PRIMARY KEY (`id`),
   KEY `idx_spending_user` (`user_id`),
   KEY `idx_spending_month` (`month_key`),
+  KEY `idx_spending_user_month` (`user_id`, `month_key`),
   KEY `idx_spending_category` (`category`),
   CONSTRAINT `fk_spending_user`
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
@@ -88,6 +90,7 @@ CREATE TABLE IF NOT EXISTS `earning_entries` (
   PRIMARY KEY (`id`),
   KEY `idx_earning_user` (`user_id`),
   KEY `idx_earning_month` (`month_key`),
+  KEY `idx_earning_user_month` (`user_id`, `month_key`),
   CONSTRAINT `fk_earning_user`
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
     ON DELETE CASCADE ON UPDATE CASCADE,
@@ -110,6 +113,7 @@ CREATE TABLE IF NOT EXISTS `borrow_entries` (
   PRIMARY KEY (`id`),
   KEY `idx_borrow_user` (`user_id`),
   KEY `idx_borrow_month` (`month_key`),
+  KEY `idx_borrow_user_month` (`user_id`, `month_key`),
   CONSTRAINT `fk_borrow_user`
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
     ON DELETE CASCADE ON UPDATE CASCADE,
@@ -140,3 +144,5 @@ CREATE TABLE IF NOT EXISTS `goals` (
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+SET FOREIGN_KEY_CHECKS=1;

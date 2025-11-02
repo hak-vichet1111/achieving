@@ -1,8 +1,10 @@
 package models
 
 import (
-	"time"
-	"gorm.io/gorm"
+    "log"
+    "os"
+    "time"
+    "gorm.io/gorm"
 )
 
 // Goal represents the goal entity aligned with the frontend type
@@ -28,12 +30,20 @@ type Goal struct {
 
 // MigrateGoals performs auto-migration for the Goal model
 func MigrateGoals(db *gorm.DB) {
-	_ = db.AutoMigrate(&Goal{})
-	// Ensure column sizes for legacy schemas
-	db.Exec("ALTER TABLE `goals` MODIFY `id` VARCHAR(36) NOT NULL")
-	db.Exec("ALTER TABLE `goals` MODIFY `user_id` VARCHAR(36)")
-	// Add FK only if missing to avoid duplicate constraint errors
-	if !db.Migrator().HasConstraint(&Goal{}, "User") {
-		_ = db.Migrator().CreateConstraint(&Goal{}, "User")
-	}
+    if os.Getenv("DISABLE_LEGACY_MIGRATIONS") == "true" {
+        log.Println("AutoMigrate disabled; skipping goals table migration")
+    } else {
+        _ = db.AutoMigrate(&Goal{})
+    }
+    // Ensure column sizes for legacy schemas (guarded by env)
+    if os.Getenv("DISABLE_LEGACY_MIGRATIONS") == "true" {
+        log.Println("Legacy migrations disabled; skipping goals legacy column alters")
+    } else {
+        db.Exec("ALTER TABLE `goals` MODIFY `id` VARCHAR(36) NOT NULL")
+        db.Exec("ALTER TABLE `goals` MODIFY `user_id` VARCHAR(36)")
+    }
+    // Add FK only if missing to avoid duplicate constraint errors
+    if !db.Migrator().HasConstraint(&Goal{}, "User") {
+        _ = db.Migrator().CreateConstraint(&Goal{}, "User")
+    }
 }

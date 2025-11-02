@@ -14,7 +14,7 @@ import (
 
 // SetupRouter constructs the gin Engine with middleware and registered routes
 func SetupRouter(db *gorm.DB) *gin.Engine {
-	r := gin.Default()
+    r := gin.Default()
 	// Trusted proxies
 	r.SetTrustedProxies([]string{"127.0.0.1"})
 	// CORS based on env
@@ -36,7 +36,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	// Spending
 	handlers.RegisterSpendingRoutes(api, db)
 
-	// Health
-	r.GET("/health", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"ok": true}) })
-	return r
+    // Health (root and /api alias, support GET and HEAD)
+    r.GET("/health", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"ok": true}) })
+    r.HEAD("/health", func(c *gin.Context) { c.Status(http.StatusOK) })
+    api.GET("/health", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"ok": true}) })
+    api.HEAD("/health", func(c *gin.Context) { c.Status(http.StatusOK) })
+    return r
 }

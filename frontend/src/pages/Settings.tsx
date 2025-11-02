@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 const Settings: React.FC = () => {
   const navigate = useNavigate()
   const { user, logout: authLogout, updateUser } = useAuth()
-  const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080'
+  const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? ''
 
   const [localUser, setLocalUser] = useState<{ name?: string; email?: string } | null>(null)
   const [nameInput, setNameInput] = useState('')
