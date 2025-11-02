@@ -35,13 +35,24 @@ pipeline {
             echo "Node.js is not installed on Jenkins agent. Please install Node 18+." >&2
             exit 1
           fi
-          # If the project uses pnpm, ensure pnpm is available; otherwise skip
+          # Enforce Node >= 18
+          NODE_MAJOR=$(node -v | sed 's/^v//' | cut -d. -f1)
+          if [ "${NODE_MAJOR}" -lt 18 ]; then
+            echo "Node >= 18 is required. Current: $(node -v)" >&2
+            exit 1
+          fi
+
+          # If the project uses pnpm, ensure pnpm is available; prefer corepack, fallback to npm -g
           if [ -f "${FRONTEND_PATH}/pnpm-lock.yaml" ] && ! command -v pnpm >/dev/null 2>&1; then
-            if command -v npm >/dev/null 2>&1; then
-              echo "pnpm lockfile detected; installing pnpm globally"
+            if command -v corepack >/dev/null 2>&1; then
+              echo "pnpm lockfile detected; enabling pnpm via corepack"
+              corepack enable || true
+              corepack prepare pnpm@latest --activate || true
+            elif command -v npm >/dev/null 2>&1; then
+              echo "corepack not available; installing pnpm globally"
               npm install -g pnpm || true
             else
-              echo "pnpm required but npm not available to install it" >&2
+              echo "pnpm required but neither corepack nor npm available to install it" >&2
             fi
           fi
           node --version
