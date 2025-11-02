@@ -31,19 +31,37 @@ pipeline {
       steps {
         sh label: 'Verify Node on Jenkins agent', script: '''
           set -euo pipefail
+          # Determine desired Node version: prefer .nvmrc, then package.json engines.node, else default to 18
+          FRONTEND_PATH="${FRONTEND_PATH}"
+          NODE_VERSION=""
+          if [ -f "${FRONTEND_PATH}/.nvmrc" ]; then
+            NODE_VERSION=$(cat "${FRONTEND_PATH}/.nvmrc" | tr -d 'v' | xargs)
+          fi
+          if [ -z "$NODE_VERSION" ] && [ -f "${FRONTEND_PATH}/package.json" ]; then
+            # try to extract engines.node; strip non-digit/dot characters
+            NODE_VERSION=$(grep -m1 '"node"' "${FRONTEND_PATH}/package.json" | sed -E 's/.*"node"\s*:\s*"([^"]+)".*/\1/' | tr -cd '0-9.')
+          fi
+          if [ -z "$NODE_VERSION" ]; then NODE_VERSION="18"; fi
+
+          # Install and use desired Node via nvm if node missing or wrong version
+          export NVM_DIR="$HOME/.nvm"
+          if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+            curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+          fi
+          . "$NVM_DIR/nvm.sh"
           if ! command -v node >/dev/null 2>&1; then 
-            echo "Node.js is not installed on Jenkins agent. Please install Node 18+." >&2
-            exit 1
+            echo "Node.js not found; installing Node $NODE_VERSION via nvm" >&2
+            nvm install "$NODE_VERSION"
           fi
-          # Enforce Node >= 18
-          NODE_MAJOR=$(node -v | sed 's/^v//' | cut -d. -f1)
-          if [ "${NODE_MAJOR}" -lt 18 ]; then
-            echo "Node >= 18 is required. Current: $(node -v)" >&2
-            exit 1
-          fi
+          # Ensure we are using the requested version
+          nvm install "$NODE_VERSION" >/dev/null 2>&1 || true
+          nvm use "$NODE_VERSION"
+          echo "Using Node $(node -v)"
 
           # If the project uses pnpm, ensure pnpm is available; prefer corepack, fallback to npm -g
           if [ -f "${FRONTEND_PATH}/pnpm-lock.yaml" ] && ! command -v pnpm >/dev/null 2>&1; then
+            # activate nvm for this shell in case it was just installed
+            export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; nvm use "$NODE_VERSION" || true
             if command -v corepack >/dev/null 2>&1; then
               echo "pnpm lockfile detected; enabling pnpm via corepack"
               corepack enable || true
@@ -66,6 +84,14 @@ pipeline {
       steps {
         sh label: 'Install deps and build locally', script: '''
           set -euo pipefail
+          # Ensure Node from nvm is available in this shell and match project version
+          FRONTEND_PATH="${FRONTEND_PATH}"
+          NODE_VERSION=""
+          if [ -f "${FRONTEND_PATH}/.nvmrc" ]; then NODE_VERSION=$(cat "${FRONTEND_PATH}/.nvmrc" | tr -d 'v' | xargs); fi
+          if [ -z "$NODE_VERSION" ] && [ -f "${FRONTEND_PATH}/package.json" ]; then NODE_VERSION=$(grep -m1 '"node"' "${FRONTEND_PATH}/package.json" | sed -E 's/.*"node"\s*:\s*"([^"]+)".*/\1/' | tr -cd '0-9.'); fi
+          if [ -z "$NODE_VERSION" ]; then NODE_VERSION="18"; fi
+          export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; nvm install "$NODE_VERSION" >/dev/null 2>&1 || true; nvm use "$NODE_VERSION" || true
+          echo "Building with Node $(node -v)"
           FRONTEND_PATH="${FRONTEND_PATH}"
           cd "$FRONTEND_PATH"
           if [ -f pnpm-lock.yaml ]; then
