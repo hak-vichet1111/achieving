@@ -1,10 +1,50 @@
-# Ignore environment files anywhere in the repo
+# Environment and secrets
 **/.env
+**/.env.*
+!**/.env.example
+**/*.key
+**/*.pem
+**/*.crt
+**/secrets/
+**/secret.*
 
-# Ignore backend build/output directory
-backend/achieving-backend/
+# SSH keys
+**/id_rsa
+**/id_ecdsa
+**/id_ed25519
 
-# Optional: macOS and editor cruft (safe to keep ignored)
+# Package manager configs (may contain tokens)
+**/.npmrc
+**/.yarnrc
+**/.yarnrc.yml
+
+# Node/JS build outputs and caches
+node_modules/
+dist/
+build/
+coverage/
+.next/
+.out/
+.vite/
+.parcel-cache
+.cache
+.turbo
+.nyc_output
+
+# Logs
+*.log
+logs/
+
+# OS and IDE files
 .DS_Store
+Thumbs.db
 .idea/
 .vscode/
+*.swp
+
+# Archives
+*.zip
+*.tar.gz
+
+# Backend build/output directory
+backend/achieving-backend/
