@@ -58,13 +58,33 @@ Notes:
 - `frontend/Dockerfile` accepts `VITE_API_BASE` build arg; adjust in `docker-compose.prod.yml` for your API domain.
 
 ## CI/CD (Jenkins)
-- SSH Smoke Test Pipeline: `devops/ssh-smoke-test.groovy`
-  - Parameters: `HOST_SERVER`, `SSH_PORT`, `SSH_USER_ID`, `SSH_PASS_ID`.
-  - Ensures `sshpass` is installed on Debian agents.
-  - Verifies remote `node`/`npm`, user identity, and `/var/www/achieving` presence.
-- Frontend Deploy Pipeline: `devops/frontend-deploy.groovy`
-  - Clones, builds, rsyncs `dist/` to `/var/www/achieving/`, restarts service, and sends Telegram alerts.
-  - Parameters include Git URL/branch, service name, and Telegram credential IDs.
+This repo includes a Jenkins declarative pipeline (`Jenkinsfile`) for SSH-based deploys.
+
+### Jenkinsfile: Frontend Deploy via Angie (optional backend restart)
+- What it does:
+  - SSH to production, clone/update repo in `REMOTE_WORKDIR`.
+  - Build React app in `FRONTEND_PATH` using `pnpm` or `npm`.
+  - `rsync -a --delete` `dist/` to `ANGIE_WEBROOT`.
+  - Restart Angie (`ANGIE_SERVICE_NAME`) and verify it is `active`.
+  - Optionally restart backend (`BACKEND_SERVICE_NAME`).
+  - Send Telegram message on success/failure.
+
+- Required Jenkins credentials:
+  - `prod-server-ssh`: SSH Username with private key for `${DEPLOY_USER}@${DEPLOY_HOST}`.
+  - `telegram-bot-token`: Secret text for Telegram Bot API token.
+  - `telegram-chat-id`: Secret text for target chat/group ID.
+
+- Parameters:
+  - `DEPLOY_HOST`, `DEPLOY_USER`, `REPO_URL`, `REMOTE_WORKDIR`, `FRONTEND_PATH`.
+  - `ANGIE_WEBROOT`, `ANGIE_SERVICE_NAME`, `ANGIE_TEST_URL`.
+  - `DEPLOY_BACKEND`, `BACKEND_SERVICE_NAME`, `BACKEND_DIR`.
+
+- Server prerequisites:
+  - Node.js (`npm` or `pnpm`), `rsync`, `curl`, `systemctl`, `journalctl`.
+  - Angie service configured and permissions for `sudo systemctl restart` and writing to `ANGIE_WEBROOT`.
+
+### Utilities
+- SSH Smoke Test: `devops/ssh-smoke-test.groovy` validates SSH connectivity and basics on the target server.
 
 ## Security & Secrets
 - `.gitignore` blocks environment files, keys, and build artifacts.
