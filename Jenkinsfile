@@ -3,7 +3,6 @@ pipeline {
   options {
     timestamps()
     disableConcurrentBuilds()
-    ansiColor('xterm')
   }
   environment {
     DEPLOY_HOST = "62.146.233.58"
