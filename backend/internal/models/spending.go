@@ -70,7 +70,8 @@ type Month struct {
 
 func MigrateSpending(db *gorm.DB) {
     // Always ensure core tables exist using AutoMigrate
-    _ = db.AutoMigrate(&SpendingEntry{}, &EarningEntry{}, &BorrowEntry{}, &Category{}, &Plan{}, &Month{})
+    // Create parent tables first to avoid FK issues
+    _ = db.AutoMigrate(&Month{}, &Category{}, &Plan{}, &SpendingEntry{}, &EarningEntry{}, &BorrowEntry{})
     // Backfill month_key for existing records
     db.Exec("UPDATE spending_entries SET month_key = DATE_FORMAT(date, '%Y-%m') WHERE month_key IS NULL OR month_key = ''")
     db.Exec("UPDATE earning_entries SET month_key = DATE_FORMAT(date, '%Y-%m') WHERE month_key IS NULL OR month_key = ''")
