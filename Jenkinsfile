@@ -7,15 +7,12 @@ pipeline {
   environment {
     DEPLOY_HOST = "62.146.233.58"
     DEPLOY_USER = "jenkins"
-    DEPLOY_USER_PASS = "43werHL@!erd"
     FRONTEND_PATH = "frontend"
     ANGIE_WEBROOT = "/var/www/achieving"
     ANGIE_SERVICE_NAME = "angie"
     ANGIE_TEST_URL = "http://62.146.233.58"
     BACKEND_SERVICE_NAME = "achieving-backend"
     DEPLOY_BACKEND = "false"
-    TELEGRAM_BOT_TOKEN = "8033277462:AAGhQ_ROqmKObcFjKatjEvvr8x1eGkYueyg"
-    TELEGRAM_CHAT_ID = "-4906597719"
 
   }
 
