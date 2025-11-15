@@ -82,28 +82,26 @@ while true; do
 done
 
 # === Configure root password ===
-log "Configuring root user password..."
+# log "Configuring root user password..."
 # Try via socket auth first (typical on Debian after install)
-if mysql -e "SELECT 1;" >/dev/null 2>&1; then
-  mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}'; FLUSH PRIVILEGES;" \
-    || error "Failed to set root password via socket"
-else
-  warn "Socket auth for root not available; verifying supplied root password..."
-  if mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "SELECT 1;" >/dev/null 2>&1; then
-    log "Root password appears already set and valid."
-  else
-    error "Could not set or verify root password. Try: sudo mysql -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '<pass>'\""
-  fi
-fi
+# if mysql -e "SELECT 1;" >/dev/null 2>&1; then
+#   mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}'; FLUSH PRIVILEGES;" \
+#     || error "Failed to set root password via socket"
+# else
+#   warn "Socket auth for root not available; verifying supplied root password..."
+#   if mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "SELECT 1;" >/dev/null 2>&1; then
+#     log "Root password appears already set and valid."
+#   else
+#     error "Could not set or verify root password. Try: sudo mysql -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '<pass>'\""
+#   fi
+# fi
 
 # === Create DB and users ===
 log "Creating database '${DB_NAME}' and users..."
 mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" <<EOF
 CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`;
 CREATE USER IF NOT EXISTS '${USER1}'@'localhost' IDENTIFIED BY '${USER_PASSWORD}';
-GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO 'root'@'localhost';
 GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${USER1}'@'localhost';
-
 FLUSH PRIVILEGES;
 EOF
 
