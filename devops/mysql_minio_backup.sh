@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Ensure common binary paths and define mc path
+export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+MC="/usr/local/bin/mc"
+
 ############################
 ## CONFIG
 ############################
@@ -8,7 +12,7 @@ set -e
 # MySQL
 DB_NAME="achieving_db"
 DB_USER="root"
-DB_PASS="21wqsaXZ"
+DB_PASS="345678"
 
 # Backup directory
 BACKUP_DIR="/opt/backups/mysql"
@@ -63,9 +67,9 @@ log "✅ Backup created: $BACKUP_FILE"
 ############################
 ## CONFIGURE MINIO
 ############################
-if ! mc alias ls | grep -q "$MINIO_ALIAS"; then
+if ! $MC alias ls | grep -q "$MINIO_ALIAS"; then
     log "🔧 Setting MinIO alias..."
-    mc alias set "$MINIO_ALIAS" "$MINIO_URL" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY"
+    $MC alias set "$MINIO_ALIAS" "$MINIO_URL" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY"
 fi
 
 
@@ -74,7 +78,7 @@ fi
 ############################
 log "📤 Uploading backup to MinIO..."
 
-mc cp "$BACKUP_DIR/$BACKUP_FILE" "${MINIO_ALIAS}/${MINIO_BUCKET}/${MINIO_PATH}/"
+$MC cp "$BACKUP_DIR/$BACKUP_FILE" "${MINIO_ALIAS}/${MINIO_BUCKET}/${MINIO_PATH}/"
 
 if [ $? -ne 0 ]; then
     log "❌ Upload to MinIO failed!"

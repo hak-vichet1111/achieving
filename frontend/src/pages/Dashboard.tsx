@@ -5,10 +5,12 @@ import GoalCard from '../components/GoalCard';
 import ProgressRing from '../components/ProgressRing';
 import GoalModal from '../components/GoalModal';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Award, Clock, Target, ArrowRight, Plus, Calendar, Wallet } from 'lucide-react';
+import { TrendingUp, Award, Clock, Target, ArrowRight, Plus, Calendar, Wallet, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSpending } from '../contexts/SpendingContext';
 import { useTranslation } from 'react-i18next'
+import ToastViewport from '../components/ToastViewport'
+import { useToast } from '../hooks/useToast'
 
 const Dashboard = () => {
   const { theme } = useTheme();
@@ -16,6 +18,7 @@ const Dashboard = () => {
   const { totalThisMonth, recentMonths } = useSpending();
   const navigate = useNavigate();
   const { t } = useTranslation('dashboard')
+  const { toasts, showToast } = useToast()
 
   const notStarted = goals.filter(g => g.status === 'not_started').length;
   const inProgress = goals.filter(g => g.status === 'in_progress').length;
@@ -26,6 +29,32 @@ const Dashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'not_started' | 'in_progress' | 'completed'>('all');
   const [chartType, setChartType] = useState<'bars' | 'line'>('bars');
+
+  // Keyboard shortcut removed per request
+
+  // Create goal handler wired to GoalsContext
+  const handleAddGoal = (newGoal: any) => {
+    // Validate minimal fields
+    if (!newGoal?.title || !newGoal?.targetAmount) {
+      showToast(t('toast_goal_invalid'), 'warning')
+      return
+    }
+    // Map GoalModal payload to GoalsContext AddGoalPayload
+    addGoal({
+      title: newGoal.title,
+      description: newGoal.description,
+      category: newGoal.category,
+      saveFrequency: newGoal.saveFrequency,
+      duration: newGoal.duration,
+      startDate: newGoal.startDate,
+      endDate: newGoal.endDate,
+      targetDate: newGoal.endDate || newGoal.targetDate,
+      targetAmount: newGoal.targetAmount,
+      currentAmount: newGoal.savedAmount ?? 0,
+    });
+    setShowModal(false);
+    showToast(t('toast_goal_created', { title: newGoal.title }), 'success')
+  };
 
   const filteredGoals = statusFilter === 'all' ? goals : goals.filter(g => g.status === statusFilter);
   const upcomingGoals = goals
@@ -63,6 +92,7 @@ const Dashboard = () => {
       animate="visible"
       variants={containerVariants}
     >
+      <ToastViewport toasts={toasts} />
       <motion.header variants={itemVariants} className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/50 p-6 rounded-xl border border-border/50 backdrop-blur-sm">
         <div>
           <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
@@ -82,10 +112,12 @@ const Dashboard = () => {
       </motion.header>
 
       {/* Status summary cards */}
+      <h2 className="text-sm font-semibold text-muted-foreground tracking-wide uppercase">{t('section_status')}</h2>
       <motion.section variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <motion.div
           whileHover={{ y: -5, boxShadow: '0 10px 30px -15px rgba(0,0,0,0.2)' }}
           className="bg-card rounded-xl p-6 border border-border flex items-center gap-4 transition-all"
+          title={`${t('status_not_started')}: ${notStarted}`}
         >
           <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
             <Clock size={24} />
@@ -99,6 +131,7 @@ const Dashboard = () => {
         <motion.div
           whileHover={{ y: -5, boxShadow: '0 10px 30px -15px rgba(0,0,0,0.2)' }}
           className="bg-card rounded-xl p-6 border border-border flex items-center gap-4 transition-all"
+          title={`${t('status_in_progress')}: ${inProgress}`}
         >
           <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
             <TrendingUp size={24} />
@@ -112,6 +145,7 @@ const Dashboard = () => {
         <motion.div
           whileHover={{ y: -5, boxShadow: '0 10px 30px -15px rgba(0,0,0,0.2)' }}
           className="bg-card rounded-xl p-6 border border-border flex items-center gap-4 transition-all"
+          title={`${t('status_completed')}: ${completed}`}
         >
           <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400">
             <Award size={24} />
@@ -124,11 +158,13 @@ const Dashboard = () => {
       </motion.section>
 
       {/* Spending summary + history side-by-side */}
+      <h2 className="text-sm font-semibold text-muted-foreground tracking-wide uppercase">{t('section_spending')}</h2>
       <motion.section variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Spent This Month card */}
         <motion.div
           whileHover={{ y: -5, boxShadow: '0 10px 30px -15px rgba(0,0,0,0.2)' }}
           className="bg-card rounded-xl p-6 border border-border flex items-center justify-between gap-6 transition-all"
+          title={`${t('spent_this_month')}: $${totalThisMonth.toLocaleString()}`}
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
@@ -171,7 +207,7 @@ const Dashboard = () => {
                       animate={{ height: `${height}%` }}
                       transition={{ type: 'spring', stiffness: 200, damping: 24 }}
                       className="w-full rounded-md cursor-pointer bg-gradient-to-t from-primary/20 to-primary/60 shadow-sm hover:from-primary/30 hover:to-primary/70"
-                      onClick={() => navigate(`/spending/${m.key}`)}
+                      onClick={() => navigate(`/spend/${m.key}`)}
                       title={`${m.label}: $${m.total.toLocaleString()}`}
                     />
                     <span className="mt-2 text-xs text-muted-foreground">{m.label.split(' ')[0]}</span>
@@ -181,6 +217,7 @@ const Dashboard = () => {
             </div>
           ) : (
             <svg className="mt-4 w-full h-32" viewBox="0 0 240 64">
+              <title>{t('last_months')}</title>
               {(() => {
                 const points = recentMonths.slice(0, 6).reverse().map((m, i) => {
                   const x = (i / 5) * 240
@@ -208,8 +245,9 @@ const Dashboard = () => {
             {recentMonths.slice(0, 6).map(m => (
               <li key={m.key}>
                 <button
-                  onClick={() => navigate(`/spending/${m.key}`)}
+                  onClick={() => navigate(`/spend/${m.key}`)}
                   className="w-full text-left text-sm px-2 py-2 rounded-md hover:bg-muted flex items-center justify-between"
+                  title={`${m.label}: $${m.total.toLocaleString()}`}
                 >
                   <span className="text-muted-foreground">{m.label}</span>
                   <span className="font-medium">${m.total.toLocaleString()}</span>
@@ -243,7 +281,7 @@ const Dashboard = () => {
               {upcomingGoals.map(g => (
                 <li key={g.id} className="py-3 flex items-center justify-between">
                   <div>
-                    <p className="font-medium">{g.title}</p>
+                    <p className="font-medium">{g.title}{g.category && (<span className="ml-2 text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground border border-border align-middle">{g.category}</span>)}</p>
                     {g.targetDate && (
                       <p className="text-xs text-muted-foreground">{t('target_label', { date: new Date(g.targetDate).toLocaleDateString() })}</p>
                     )}
@@ -271,27 +309,27 @@ const Dashboard = () => {
         <div className="flex border-b border-border mb-4">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-4 py-2 text-sm font-medium ${statusFilter === 'all' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`px-4 py-2 text-sm font-medium rounded-full mx-1 ${statusFilter === 'all' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
           >
-            {t('filter_all')}
+            {t('filter_all')} <span className="ml-1 text-xs text-muted-foreground">({total})</span>
           </button>
           <button
             onClick={() => setStatusFilter('not_started')}
-            className={`px-4 py-2 text-sm font-medium ${statusFilter === 'not_started' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`px-4 py-2 text-sm font-medium rounded-full mx-1 ${statusFilter === 'not_started' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
           >
-            {t('filter_not_started')}
+            {t('filter_not_started')} <span className="ml-1 text-xs text-muted-foreground">({notStarted})</span>
           </button>
           <button
             onClick={() => setStatusFilter('in_progress')}
-            className={`px-4 py-2 text-sm font-medium ${statusFilter === 'in_progress' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`px-4 py-2 text-sm font-medium rounded-full mx-1 ${statusFilter === 'in_progress' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
           >
-            {t('filter_in_progress')}
+            {t('filter_in_progress')} <span className="ml-1 text-xs text-muted-foreground">({inProgress})</span>
           </button>
           <button
             onClick={() => setStatusFilter('completed')}
-            className={`px-4 py-2 text-sm font-medium ${statusFilter === 'completed' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`px-4 py-2 text-sm font-medium rounded-full mx-1 ${statusFilter === 'completed' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
           >
-            {t('filter_completed')}
+            {t('filter_completed')} <span className="ml-1 text-xs text-muted-foreground">({completed})</span>
           </button>
         </div>
 
@@ -305,7 +343,7 @@ const Dashboard = () => {
             </button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {filteredGoals.slice(0, 8).map((goal, index) => (
               <motion.div
                 key={goal.id}
@@ -323,6 +361,36 @@ const Dashboard = () => {
           </div>
         )}
       </motion.section>
+
+      {/* Create Goal Modal */}
+      {showModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center"
+          onClick={() => setShowModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-card border border-border rounded-2xl p-6 shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">{t('create_goal')}</h3>
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-2 rounded-lg hover:bg-muted text-muted-foreground"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <GoalModal onCancel={() => setShowModal(false)} onSubmit={handleAddGoal} />
+          </motion.div>
+        </motion.div>
+      )}
     </motion.div>
   )
 }

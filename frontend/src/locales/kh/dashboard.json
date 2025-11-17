@@ -23,5 +23,9 @@
   "filter_in_progress": "កំពុងដំណើរការ",
   "filter_completed": "បានបញ្ចប់",
   "no_goals_filter": "គ្មានគោលដៅផ្គូផ្គងតាមតម្រងនេះទេ",
-  "create_goal": "បង្កើតគោលដៅ"
+  "create_goal": "បង្កើតគោលដៅ",
+  "section_status": "សង្ខេបស្ថានភាព",
+  "section_spending": "សង្ខេបចំណាយ",
+  "toast_goal_created": "បានបង្កើតគោលដៅ: {{title}}",
+  "toast_goal_invalid": "សូមបញ្ចូលចំណងជើង និងចំនួនគោលដៅ"
 }

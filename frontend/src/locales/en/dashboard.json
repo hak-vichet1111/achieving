@@ -23,5 +23,9 @@
   "filter_in_progress": "In Progress",
   "filter_completed": "Completed",
   "no_goals_filter": "No goals match this filter.",
-  "create_goal": "Create Goal"
+  "create_goal": "Create Goal",
+  "section_status": "Status Summary",
+  "section_spending": "Spending Overview",
+  "toast_goal_created": "Goal created: {{title}}",
+  "toast_goal_invalid": "Please provide a title and target amount"
 }
